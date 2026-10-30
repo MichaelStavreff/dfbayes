@@ -14,12 +14,14 @@ this port is distributed as `dfbayes`.
 ## Status
 
 Phase 1 is the deterministic closed-form core plus the `method="large"`
-approximations. The stochastic small-sample paths are ported with vectorised
-numpy sampling and tested against frozen R intermediates; see `DECISION.md`.
+approximations. Phase 2 adds the simulation and power tools
+(`dfba_sim_data`, `dfba_power_curve`, `dfba_bayes_vs_t_power`). The stochastic
+small-sample paths are ported with vectorised numpy sampling and tested against
+frozen R intermediates; see `DECISION.md`.
 
 R's S4 `plot()` methods are not ported. `dfbayes` instead ships an optional,
-Python-native matplotlib layer described below. The RNG-dependent
-simulation/power functions are out of scope for Phase 1. See `COVERAGE.md`.
+Python-native matplotlib layer described below. See `COVERAGE.md` for the
+R-branch-to-test map.
 
 ## Install
 
@@ -66,6 +68,48 @@ print(mw.method, mw.BF10)
 Result objects are dataclasses whose field names match the R S4 list slots
 exactly, in the same order. `summary()` prints the fields in R order; `repr()`
 gives a compact view.
+
+### Simulation and power
+
+```python
+import numpy as np
+from dfbayes import dfba_sim_data, dfba_power_curve, dfba_bayes_vs_t_power
+
+sim = dfba_sim_data(
+    n=50,
+    model="normal",
+    design="paired",
+    delta=0.4,
+    shape1=1,
+    shape2=4,
+    rng=np.random.default_rng(2026),
+)
+print(sim.pvalue, sim.prH1)
+
+curve = dfba_power_curve(
+    n=85,
+    model="normal",
+    design="independent",
+    samples=250,
+    rng=np.random.default_rng(2026),
+)
+print(curve.outputdf.to_dataframe())
+
+by_n = dfba_bayes_vs_t_power(
+    n_min=40,
+    delta=0.45,
+    model="normal",
+    design="paired",
+    samples=250,
+    rng=np.random.default_rng(2026),
+)
+by_n.plot()
+```
+
+The simulation models are `normal`, `weibull`, `cauchy`, `lognormal`,
+`chisquare`, `logistic`, `exponential`, `gumbel`, and `pareto`. Designs are
+`paired` and `independent`. Sampling uses numpy's `Generator`, so it is not
+bit-compatible with R's `set.seed()`; pass `rng=` for reproducible runs.
 
 ### Interchange and notebooks
 
@@ -114,7 +158,8 @@ plt.savefig("posterior.png")
 ```
 
 `plot()` chooses a sensible view per result: beta densities with ETI/HDI bands,
-discrete omega/phi posteriors, contrast quantiles, or Bayes-factor null regions.
+discrete omega/phi posteriors, contrast quantiles, Bayes-factor null regions,
+simulated-data boxplots, or Bayesian-vs-frequentist power curves.
 
 
 ## Development

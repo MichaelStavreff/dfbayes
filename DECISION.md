@@ -83,10 +83,14 @@ Policy:
 - `dfba_mann_whitney(method="small")` → freeze `fomega` (length-200 counts).
 - `dfba_wilcoxon(method="small")` → freeze `fphi` (length-200 counts).
 - `dfba_beta_contrast` → freeze `delta` and `delta0`.
-- `dfba_power_curve` / `dfba_bayes_vs_t_power` → separate the simulation loop
-  from the aggregation. Test aggregation exactly against synthetic
-  `bayesprH1`/`tpvalue` arrays; test the simulation path for shape, range, and
-  monotonicity. Numeric power values are not fixture-pinned.
+- `dfba_power_curve` / `dfba_bayes_vs_t_power` → the simulation loop is
+  implemented directly; its aggregation is checked structurally (21 or 11
+  grid points, proportions in [0,1], exact grid spacing), and the per-dataset
+  summary is replayed against a frozen R E/C pair. Numeric power values are
+  not fixture-pinned because they depend on the RNG.
+- `dfba_sim_data` → each of the nine models is checked against its analytic
+  mean/median or support under a pinned numpy seed. The t-test and large-sample
+  posterior are replayed exactly against R for a frozen E/C pair.
 - The sampling wrappers use numpy. They are **not** claimed to match R.
   Two tests per stochastic function: (1) analytic-vs-Monte-Carlo empirical
   probability within ~5 standard errors at the null value (`omega=0.5` uses the
@@ -115,6 +119,34 @@ The two Mann-Whitney cases sit on opposite sides of R's branch test
 
 Branch A counts only the first `Ntot` row-major comparisons; branch B counts
 all of them. Both are preserved and replay-tested against the frozen `fomega`.
+
+## Phase 2 simulation models
+
+`dfba_sim_data` draws with numpy's `Generator`; R's `set.seed()` state is not
+reproduced. Each model uses R's parameterisation:
+
+| model | C draw | E draw |
+| --- | --- | --- |
+| `normal` | `N(0, shape1)` | `N(delta, shape2)` |
+| `weibull` | `Weibull(shape1, 1)` | `delta + Weibull(shape2, 1)` |
+| `cauchy` | `Cauchy(0, shape1)` | `Cauchy(delta, shape2)` |
+| `lognormal` | `LogNormal(0, shape1)` | `LogNormal(delta, shape2)` |
+| `chisquare` | `chi2(shape1)` | `delta + chi2(shape2)` |
+| `logistic` | `Logistic(0, shape1)` | `Logistic(delta, shape2)` |
+| `exponential` | `Exp(rate = shape1)` | `delta + Exp(rate = shape2)` |
+| `gumbel` | inverse transform on `U in [1e-5, 1-1e-5]` | same, offset by `delta` |
+| `pareto` | inverse transform, `xm=1`, `alpha=1.16*shape1` | inverse transform, `xm=1+delta`, `alpha=1.16*shape2` |
+
+The block effect is `U(0, block_max)`. Paired designs add the same block to
+both conditions; independent designs add separate blocks. The one-tailed
+p-value uses Student's t with `2n-2` degrees of freedom (independent) or `n-1`
+(paired). The Bayesian probability is the `prH1` from the large-sample
+Mann-Whitney or Wilcoxon branch, matching R.
+
+`dfba_power_curve` evaluates 21 deltas from 0 to `20*delta_step`;
+`dfba_bayes_vs_t_power` evaluates 11 sample sizes from `n_min` to `n_min+50` in
+steps of five. Both accept an optional numpy `Generator` via `rng`, which is a
+Python extension.
 
 ## Tolerances
 
@@ -182,13 +214,24 @@ numeric result.
    `results_to_dataframe()` are additions, not R API. `to_json()` maps
    non-finite values to `null` because JSON has no NaN or infinity.
    `to_dataframe()` omits array slots unless `include_arrays=True`.
+10. **Phase 2 progress and RNG.** `hide_progress` is accepted but no `\r...%`
+    progress output is emitted, matching the Phase 1 policy. The simulation
+    functions accept an optional numpy `Generator` (`rng=`) for reproducibility;
+    R only offers `set.seed()`. Sampling is not bit-compatible with R.
+11. **`dfba_power_curve` result shape.** The R documentation mentions a
+    `delta_vec` slot, but the R implementation does not add one to the returned
+    list; the values live in `outputdf$delta_value`. The port follows the
+    implementation. `PowerCurveOut.delta_vec` is a Python convenience property,
+    not an R slot.
+12. **Phase 2 `samples` validation.** R does `nsims <- round(samples)` without
+    validating the result, so `samples=0` produces a pathological `1:0` loop
+    and `NaN` power. The port requires a finite value of at least one and
+    raises `ValueError`; NA still raises `missing value where TRUE/FALSE
+    needed`.
 
-## Out of scope (Phase 1)
+## Out of scope
 
 - The 15 R `plot()` S4 methods. The Python-native plotting layer above replaces
   them for Python users but does not reproduce R's base-graphics output.
-- Phase 2: `dfba_sim_data`, `dfba_power_curve`, `dfba_bayes_vs_t_power`.
-  Their deterministic aggregation is designed in the RNG section above and is
-  implemented after Phase 1 is green.
 - `summary()`/`show()` byte-for-byte text formatting. Field names and order are
   matched; the R `sprintf`/`cat` layout is not reproduced exactly.

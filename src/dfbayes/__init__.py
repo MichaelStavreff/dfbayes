@@ -1,8 +1,8 @@
 """Distribution-free Bayesian procedures, ported from R's DFBA 0.1.0.
 
-Phase 1 covers the eleven closed-form core functions.  The Phase 2 simulation
-helpers (``dfba_sim_data``, ``dfba_power_curve``, ``dfba_bayes_vs_t_power``)
-are not part of this release.
+Phase 1 covers the eleven closed-form core functions.  Phase 2 adds the
+simulation helpers ``dfba_sim_data``, ``dfba_power_curve`` and
+``dfba_bayes_vs_t_power``.
 """
 
 from __future__ import annotations
@@ -28,13 +28,22 @@ from .results import (
     MannWhitneySmallOut,
     McnemarOut,
     MedianTestOut,
+    OutputTable,
     PointBFOut,
+    PowerCurveOut,
     SignTestOut,
+    SimDataOut,
+    TPowerOut,
     WilcoxonLargeOut,
     WilcoxonSmallOut,
     results_to_dataframe,
 )
 from .sign_test import dfba_sign_test
+from .simulation import (
+    dfba_bayes_vs_t_power,
+    dfba_power_curve,
+    dfba_sim_data,
+)
 from .wilcoxon import dfba_wilcoxon
 
 __version__ = "0.1.0"
@@ -53,6 +62,10 @@ __all__ = [
     "dfba_median_test",
     "dfba_sign_test",
     "dfba_wilcoxon",
+    # Phase 2 simulation
+    "dfba_sim_data",
+    "dfba_power_curve",
+    "dfba_bayes_vs_t_power",
     # result objects
     "DFBAResult",
     "BetaContrastOut",
@@ -67,8 +80,12 @@ __all__ = [
     "MannWhitneySmallOut",
     "McnemarOut",
     "MedianTestOut",
+    "OutputTable",
     "PointBFOut",
+    "PowerCurveOut",
     "SignTestOut",
+    "SimDataOut",
+    "TPowerOut",
     "WilcoxonLargeOut",
     "WilcoxonSmallOut",
     # batch helpers

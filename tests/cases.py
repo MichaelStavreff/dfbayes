@@ -8,11 +8,13 @@ Python port with the same inputs.
 from __future__ import annotations
 
 import math
+from types import SimpleNamespace
 from typing import Callable
 
 import numpy as np
 
 import dfbayes as d
+from dfbayes.simulation import _summarise
 
 from ._support import load_inputs
 
@@ -251,3 +253,54 @@ _add("bcon_err_contrast_neg", lambda: d.dfba_beta_contrast([22, 15], [18, 25], [
 _add("bcon_err_contrast_na", lambda: d.dfba_beta_contrast([22, 15], [18, 25], [1, None]))
 _add("bcon_err_pi_neg", lambda: d.dfba_beta_contrast([22, 15], [18, 25], [1, -1], prob_interval=-.1))
 _add("bcon_err_pi_na", lambda: d.dfba_beta_contrast([22, 15], [18, 25], [1, -1], prob_interval=None))
+
+# dfba_sim_data: validation and frozen-summary replay -----------------------
+SIM_FROZEN_E = _INPUTS["sim_frozen_e"]
+SIM_FROZEN_C = _INPUTS["sim_frozen_c"]
+
+
+def _frozen_summary(design: str) -> SimpleNamespace:
+    pvalue, pr_h1 = _summarise(
+        np.asarray(SIM_FROZEN_E, dtype=float),
+        np.asarray(SIM_FROZEN_C, dtype=float),
+        design,
+        1.0,
+        1.0,
+    )
+    return SimpleNamespace(
+        R_CLASS="list",
+        R_FIELDS=("pvalue", "prH1"),
+        pvalue=pvalue,
+        prH1=pr_h1,
+    )
+
+
+_add("sim_frozen_independent", lambda: _frozen_summary("independent"))
+_add("sim_frozen_paired", lambda: _frozen_summary("paired"))
+_add("sim_err_delta_neg", lambda: d.dfba_sim_data(n=20, model="normal", design="paired", delta=-.1))
+_add("sim_err_n_lt20", lambda: d.dfba_sim_data(n=19, model="normal", design="paired", delta=.1))
+_add("sim_err_n_nonint", lambda: d.dfba_sim_data(n=20.5, model="normal", design="paired", delta=.1))
+_add("sim_err_model", lambda: d.dfba_sim_data(n=20, model="bad", design="paired", delta=.1))
+_add("sim_err_design", lambda: d.dfba_sim_data(n=20, model="normal", design="bad", delta=.1))
+_add("sim_err_block_neg", lambda: d.dfba_sim_data(n=20, model="normal", design="paired", delta=.1, block_max=-1))
+_add("sim_err_a0_zero", lambda: d.dfba_sim_data(n=20, model="normal", design="paired", delta=.1, a0=0))
+_add("sim_err_shape_normal", lambda: d.dfba_sim_data(n=20, model="normal", design="paired", delta=.1, shape1=0))
+_add("sim_err_shape_pareto", lambda: d.dfba_sim_data(n=20, model="pareto", design="paired", delta=.1, shape1=.5))
+
+# dfba_power_curve ----------------------------------------------------------
+_add("power_err_delta_step_neg", lambda: d.dfba_power_curve(n=20, model="normal", design="paired", delta_step=-.1))
+_add("power_err_n_lt20", lambda: d.dfba_power_curve(n=19, model="normal", design="paired"))
+_add("power_err_model", lambda: d.dfba_power_curve(n=20, model="bad", design="paired"))
+_add("power_err_design", lambda: d.dfba_power_curve(n=20, model="normal", design="bad"))
+_add("power_err_effect_crit", lambda: d.dfba_power_curve(n=20, model="normal", design="paired", effect_crit=1.1))
+_add("power_err_a0_zero", lambda: d.dfba_power_curve(n=20, model="normal", design="paired", a0=0))
+_add("power_err_block_neg", lambda: d.dfba_power_curve(n=20, model="normal", design="paired", block_max=-1))
+
+# dfba_bayes_vs_t_power -----------------------------------------------------
+_add("bvt_err_delta_neg", lambda: d.dfba_bayes_vs_t_power(n_min=20, delta=-.1, model="normal", design="paired"))
+_add("bvt_err_n_min_lt20", lambda: d.dfba_bayes_vs_t_power(n_min=19, delta=.1, model="normal", design="paired"))
+_add("bvt_err_n_min_nonint", lambda: d.dfba_bayes_vs_t_power(n_min=20.5, delta=.1, model="normal", design="paired"))
+_add("bvt_err_a0_zero", lambda: d.dfba_bayes_vs_t_power(n_min=20, delta=.1, model="normal", design="paired", a0=0))
+_add("bvt_err_model", lambda: d.dfba_bayes_vs_t_power(n_min=20, delta=.1, model="bad", design="paired"))
+_add("bvt_err_design", lambda: d.dfba_bayes_vs_t_power(n_min=20, delta=.1, model="normal", design="bad"))
+_add("bvt_err_effect_crit", lambda: d.dfba_bayes_vs_t_power(n_min=20, delta=.1, model="normal", design="paired", effect_crit=1.1))

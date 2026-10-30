@@ -3,7 +3,8 @@
 Fixture case names refer to `tests/fixtures/fixtures.json`; stochastic case
 names refer to `tests/fixtures/stochastic.json`. The deterministic suite runs
 every fixture in `tests/test_deterministic.py`; the stochastic suite is
-`tests/test_stochastic.py`.
+`tests/test_stochastic.py`; Phase 2 model/power behaviour is in
+`tests/test_simulation.py`.
 
 `upstream/` is read-only. Expected values are produced by running R DFBA 0.1.0,
 never by hand.
@@ -161,15 +162,51 @@ The star class has R's duplicated `prob_interval` slot; see `DECISION.md`.
 | sampler determinism | `test_beta_contrast_sampler_is_deterministic` |
 | public wrapper shape/range | `test_beta_contrast_public_wrapper` |
 
-## Out of scope
+## `dfba_sim_data` (`dfba_sim_data.R`)
 
-| R source | Reason |
+| R branch | Tests |
 | --- | --- |
-| `dfba_sim_data.R` | Phase 2 |
-| `dfba_power_curve.R` | Phase 2 |
-| `dfba_bayes_vs_t_power.R` | Phase 2 |
-| `methods-*.R` | `plot()`/text display; field names and order are covered by `results.py` and `tests/_support.py` |
+| negative delta | `sim_err_delta_neg` |
+| `n < 20` / non-integer | `sim_err_n_lt20`, `sim_err_n_nonint` |
+| invalid model / design | `sim_err_model`, `sim_err_design` |
+| negative block effect | `sim_err_block_neg` |
+| invalid prior | `sim_err_a0_zero` |
+| model shape validation | `sim_err_shape_normal`, `sim_err_shape_pareto` |
+| independent summary (t + Mann-Whitney) against frozen R E/C | `sim_frozen_independent` |
+| paired summary (t + Wilcoxon) against frozen R E/C | `sim_frozen_paired` |
+| nine model parameterisations | `test_model_means`, `test_cauchy_scale_and_location`, `test_pareto_support_and_median` |
+| paired block effect cancels in differences | `test_sim_data_paired_block_effect_cancels_in_differences` |
+| independent block effects change both conditions | `test_sim_data_independent_block_effect_changes_values` |
+| pinned-seed reproducibility | `test_sim_data_is_reproducible_with_a_seed` |
+| output shape, design, ranges | `test_sim_data_returns_both_conditions` |
 
-Phase 2 is designed in `DECISION.md` (separate simulation loop from
-aggregation; aggregation tested exactly, simulation tested for shape/range/
-monotonicity) and will be implemented after Phase 1 is green.
+## `dfba_power_curve` (`dfba_power_curve.R`)
+
+| R branch | Tests |
+| --- | --- |
+| negative `delta_step` | `power_err_delta_step_neg` |
+| `n < 20` | `power_err_n_lt20` |
+| invalid model / design / effect criterion / prior / block | `power_err_model`, `power_err_design`, `power_err_effect_crit`, `power_err_a0_zero`, `power_err_block_neg` |
+| 21-point delta grid and 21 power rows | `test_power_curve_structure_and_reproducibility` |
+| `n` rounded like R | `test_power_curve_rounds_n_like_r` |
+| pinned-seed reproducibility | `test_power_curve_structure_and_reproducibility` |
+| output table and pandas export | `test_output_table_is_pandas_friendly`, `test_power_result_helpers_and_batch_dataframe` |
+| plotting | `test_power_curve_plot` |
+
+## `dfba_bayes_vs_t_power` (`dfba_bayes_vs_t_power.R`)
+
+| R branch | Tests |
+| --- | --- |
+| negative delta | `bvt_err_delta_neg` |
+| `n_min < 20` / non-integer | `bvt_err_n_min_lt20`, `bvt_err_n_min_nonint` |
+| invalid prior / model / design / effect criterion | `bvt_err_a0_zero`, `bvt_err_model`, `bvt_err_design`, `bvt_err_effect_crit` |
+| 11 sample sizes from `n_min` to `n_min+50` | `test_bayes_vs_t_power_structure_and_reproducibility`, `test_bayes_vs_t_power_sample_size_grid_respects_n_min` |
+| pinned-seed reproducibility | `test_bayes_vs_t_power_structure_and_reproducibility` |
+| plotting | `test_bayes_vs_t_power_plot` |
+
+## `methods-*.R`
+
+| R source | Coverage |
+| --- | --- |
+| `show` methods | `summary()`/`str()` field order in `tests/test_results.py` |
+| `plot` methods | Python-native `result.plot()` dispatch in `tests/test_plotting.py`; not byte-compatible with R base graphics |

@@ -26,6 +26,9 @@ _TITLES = {
     "dfba_mcnemar_out": "McNemar posterior for phi",
     "dfba_bivariate_concordance_out": "Concordance posterior for tau",
     "dfba_bivariate_concordance_star_out": "Concordance posterior for tau",
+    "dfba_sim_data_out": "Simulated data",
+    "dfba_power_curve_out": "Bayesian and frequentist power by delta",
+    "dfba_t_power_out": "Bayesian and frequentist power by sample size",
 }
 
 
@@ -159,6 +162,39 @@ def _plot_delta(result: Any, ax: Any) -> None:
         ax.axvline(float(mean), color="C0", linestyle="--", linewidth=1.0, label="mean")
 
 
+def _plot_power(ax: Any, x: Any, bayes: Any, frequentist: Any) -> None:
+    x_values = np.asarray(x, dtype=float)
+    ax.plot(
+        x_values,
+        np.asarray(bayes, dtype=float),
+        color="C0",
+        marker="o",
+        label="Bayesian",
+    )
+    ax.plot(
+        x_values,
+        np.asarray(frequentist, dtype=float),
+        color="C1",
+        marker="o",
+        linestyle="--",
+        label="frequentist t",
+    )
+    ax.set_ylim(0.0, 1.0)
+
+
+def _plot_sim_data(result: Any, ax: Any) -> None:
+    e = np.asarray(result.E, dtype=float)
+    c = np.asarray(result.C, dtype=float)
+    if result.design == "independent":
+        ax.boxplot([e, c])
+        ax.set_xticks([1, 2])
+        ax.set_xticklabels(["E", "C"])
+    else:
+        ax.boxplot([e - c])
+        ax.set_xticks([1])
+        ax.set_xticklabels(["E - C"])
+
+
 def plot_result(
     result: Any,
     *,
@@ -169,6 +205,28 @@ def plot_result(
     """Plot one DFBA result and return the matplotlib ``Axes``."""
     ax = _axes(ax, figsize)
     title = title or _TITLES.get(result.R_CLASS, result.R_CLASS)
+
+    if result.R_CLASS == "dfba_sim_data_out":
+        _plot_sim_data(result, ax)
+        return _finish(ax, title, "group", "simulated value")
+
+    if result.R_CLASS == "dfba_power_curve_out":
+        _plot_power(
+            ax,
+            result.outputdf.delta_value,
+            result.outputdf.Bayes_power,
+            result.outputdf.t_power,
+        )
+        return _finish(ax, title, "delta", "power estimate")
+
+    if result.R_CLASS == "dfba_t_power_out":
+        _plot_power(
+            ax,
+            result.outputdf.sample_size,
+            result.outputdf.Bayes_power,
+            result.outputdf.t_power,
+        )
+        return _finish(ax, title, "sample size", "power estimate")
 
     if hasattr(result, "outputdf"):
         _plot_beta_outputdf(result, ax)

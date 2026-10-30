@@ -559,6 +559,83 @@ add("bcon_err_pi_neg", "dfba_beta_contrast(c(22,15), c(18,25), c(1,-1), prob_int
 add("bcon_err_pi_na", "dfba_beta_contrast(c(22,15), c(18,25), c(1,-1), prob_interval=NA)",
     quote(dfba_beta_contrast(c(22, 15), c(18, 25), c(1, -1), prob_interval = NA)))
 
+# dfba_sim_data -------------------------------------------------------------
+sim_frozen_E <- c(1.2, 0.8, 2.1, 1.9, 0.4, 1.5, 2.8, 1.1, 0.9, 2.3,
+                  1.7, 0.6, 2.5, 1.4, 0.3, 1.8, 2.0, 1.0, 2.6, 0.7)
+sim_frozen_C <- c(0.5, 0.2, 1.1, 0.9, 0.1, 0.7, 1.8, 0.4, 0.3, 1.3,
+                  0.8, 0.2, 1.5, 0.6, 0.1, 1.0, 1.2, 0.4, 1.6, 0.3)
+add("sim_frozen_independent", "frozen E/C, independent summary", quote({
+  E <- sim_frozen_E
+  C <- sim_frozen_C
+  tnum <- mean(E) - mean(C)
+  tdem <- sqrt((var(E) + var(C)) / length(E))
+  t_sample <- tnum / tdem
+  list(
+    pvalue = pt(t_sample, 2 * length(E) - 2, lower.tail = FALSE),
+    prH1 = dfba_mann_whitney(E, C, 1, 1, method = "large")$prH1
+  )
+}))
+add("sim_frozen_paired", "frozen E/C, paired summary", quote({
+  E <- sim_frozen_E
+  C <- sim_frozen_C
+  d <- E - C
+  t_sample <- (sqrt(length(d)) * mean(d)) / sd(d)
+  list(
+    pvalue = pt(t_sample, length(d) - 1, lower.tail = FALSE),
+    prH1 = dfba_wilcoxon(E, C, 1, 1, method = "large")$prH1
+  )
+}))
+add("sim_err_delta_neg", "dfba_sim_data(n=20, model='normal', design='paired', delta=-.1)",
+    quote(dfba_sim_data(n = 20, model = "normal", design = "paired", delta = -.1)))
+add("sim_err_n_lt20", "dfba_sim_data(n=19, model='normal', design='paired', delta=.1)",
+    quote(dfba_sim_data(n = 19, model = "normal", design = "paired", delta = .1)))
+add("sim_err_n_nonint", "dfba_sim_data(n=20.5, model='normal', design='paired', delta=.1)",
+    quote(dfba_sim_data(n = 20.5, model = "normal", design = "paired", delta = .1)))
+add("sim_err_model", "dfba_sim_data(n=20, model='bad', design='paired', delta=.1)",
+    quote(dfba_sim_data(n = 20, model = "bad", design = "paired", delta = .1)))
+add("sim_err_design", "dfba_sim_data(n=20, model='normal', design='bad', delta=.1)",
+    quote(dfba_sim_data(n = 20, model = "normal", design = "bad", delta = .1)))
+add("sim_err_block_neg", "dfba_sim_data(n=20, model='normal', design='paired', delta=.1, block_max=-1)",
+    quote(dfba_sim_data(n = 20, model = "normal", design = "paired", delta = .1, block_max = -1)))
+add("sim_err_a0_zero", "dfba_sim_data(n=20, model='normal', design='paired', delta=.1, a0=0)",
+    quote(dfba_sim_data(n = 20, model = "normal", design = "paired", delta = .1, a0 = 0)))
+add("sim_err_shape_normal", "dfba_sim_data(n=20, model='normal', design='paired', delta=.1, shape1=0)",
+    quote(dfba_sim_data(n = 20, model = "normal", design = "paired", delta = .1, shape1 = 0)))
+add("sim_err_shape_pareto", "dfba_sim_data(n=20, model='pareto', design='paired', delta=.1, shape1=.5)",
+    quote(dfba_sim_data(n = 20, model = "pareto", design = "paired", delta = .1, shape1 = .5)))
+
+# dfba_power_curve ----------------------------------------------------------
+add("power_err_delta_step_neg", "dfba_power_curve(n=20, model='normal', design='paired', delta_step=-.1)",
+    quote(dfba_power_curve(n = 20, model = "normal", design = "paired", delta_step = -.1)))
+add("power_err_n_lt20", "dfba_power_curve(n=19, model='normal', design='paired')",
+    quote(dfba_power_curve(n = 19, model = "normal", design = "paired")))
+add("power_err_model", "dfba_power_curve(n=20, model='bad', design='paired')",
+    quote(dfba_power_curve(n = 20, model = "bad", design = "paired")))
+add("power_err_design", "dfba_power_curve(n=20, model='normal', design='bad')",
+    quote(dfba_power_curve(n = 20, model = "normal", design = "bad")))
+add("power_err_effect_crit", "dfba_power_curve(n=20, model='normal', design='paired', effect_crit=1.1)",
+    quote(dfba_power_curve(n = 20, model = "normal", design = "paired", effect_crit = 1.1)))
+add("power_err_a0_zero", "dfba_power_curve(n=20, model='normal', design='paired', a0=0)",
+    quote(dfba_power_curve(n = 20, model = "normal", design = "paired", a0 = 0)))
+add("power_err_block_neg", "dfba_power_curve(n=20, model='normal', design='paired', block_max=-1)",
+    quote(dfba_power_curve(n = 20, model = "normal", design = "paired", block_max = -1)))
+
+# dfba_bayes_vs_t_power -----------------------------------------------------
+add("bvt_err_delta_neg", "dfba_bayes_vs_t_power(n_min=20, delta=-.1, model='normal', design='paired')",
+    quote(dfba_bayes_vs_t_power(n_min = 20, delta = -.1, model = "normal", design = "paired")))
+add("bvt_err_n_min_lt20", "dfba_bayes_vs_t_power(n_min=19, delta=.1, model='normal', design='paired')",
+    quote(dfba_bayes_vs_t_power(n_min = 19, delta = .1, model = "normal", design = "paired")))
+add("bvt_err_n_min_nonint", "dfba_bayes_vs_t_power(n_min=20.5, delta=.1, model='normal', design='paired')",
+    quote(dfba_bayes_vs_t_power(n_min = 20.5, delta = .1, model = "normal", design = "paired")))
+add("bvt_err_a0_zero", "dfba_bayes_vs_t_power(n_min=20, delta=.1, model='normal', design='paired', a0=0)",
+    quote(dfba_bayes_vs_t_power(n_min = 20, delta = .1, model = "normal", design = "paired", a0 = 0)))
+add("bvt_err_model", "dfba_bayes_vs_t_power(n_min=20, delta=.1, model='bad', design='paired')",
+    quote(dfba_bayes_vs_t_power(n_min = 20, delta = .1, model = "bad", design = "paired")))
+add("bvt_err_design", "dfba_bayes_vs_t_power(n_min=20, delta=.1, model='normal', design='bad')",
+    quote(dfba_bayes_vs_t_power(n_min = 20, delta = .1, model = "normal", design = "bad")))
+add("bvt_err_effect_crit", "dfba_bayes_vs_t_power(n_min=20, delta=.1, model='normal', design='paired', effect_crit=1.1)",
+    quote(dfba_bayes_vs_t_power(n_min = 20, delta = .1, model = "normal", design = "paired", effect_crit = 1.1)))
+
 ## ---------------------------------------------------------------------------
 ## Write deterministic + large fixtures
 ## ---------------------------------------------------------------------------
@@ -574,6 +651,8 @@ fixture_inputs <- list(
   gamma_mat = gamma_mat,
   bc_x = bc_x,
   bc_y = bc_y,
+  sim_frozen_e = sim_frozen_E,
+  sim_frozen_c = sim_frozen_C,
   groupA = groupA,
   groupB = groupB,
   groupC = groupC,

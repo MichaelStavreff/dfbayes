@@ -73,3 +73,65 @@ def test_plot_unknown_result_raises():
 
     with pytest.raises(NotImplementedError, match="dfba_unknown_out"):
         Unknown().plot()
+
+
+def _sim_data(design: str):
+    import numpy as np
+
+    import dfbayes as d
+
+    return d.dfba_sim_data(
+        n=20,
+        model="normal",
+        design=design,
+        delta=0.4,
+        rng=np.random.default_rng(20261110),
+    )
+
+
+def test_sim_data_plot_independent():
+    ax = _sim_data("independent").plot()
+    assert isinstance(ax, Axes)
+    assert [tick.get_text() for tick in ax.get_xticklabels()] == ["E", "C"]
+
+
+def test_sim_data_plot_paired():
+    ax = _sim_data("paired").plot()
+    assert isinstance(ax, Axes)
+    assert [tick.get_text() for tick in ax.get_xticklabels()] == ["E - C"]
+
+
+def test_power_curve_plot():
+    import numpy as np
+
+    import dfbayes as d
+
+    result = d.dfba_power_curve(
+        n=20,
+        model="normal",
+        design="paired",
+        samples=2,
+        rng=np.random.default_rng(20261111),
+    )
+    ax = result.plot()
+    assert isinstance(ax, Axes)
+    assert [line.get_label() for line in ax.get_lines()] == ["Bayesian", "frequentist t"]
+    assert ax.get_ylim() == pytest.approx((0.0, 1.0))
+
+
+def test_bayes_vs_t_power_plot():
+    import numpy as np
+
+    import dfbayes as d
+
+    result = d.dfba_bayes_vs_t_power(
+        n_min=20,
+        delta=0.4,
+        model="normal",
+        design="paired",
+        samples=2,
+        rng=np.random.default_rng(20261112),
+    )
+    ax = result.plot()
+    assert isinstance(ax, Axes)
+    assert [line.get_label() for line in ax.get_lines()] == ["Bayesian", "frequentist t"]

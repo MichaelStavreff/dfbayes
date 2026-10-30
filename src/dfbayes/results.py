@@ -37,7 +37,7 @@ def _format_value(value: Any) -> str:
 
 def _plain_value(value: Any) -> Any:
     """Convert numpy containers to JSON-friendly Python objects."""
-    if isinstance(value, BetaOutputDF):
+    if isinstance(value, (BetaOutputDF, OutputTable)):
         return value.to_dict()
     if isinstance(value, np.ndarray):
         return value.tolist()
@@ -195,6 +195,10 @@ class DFBAResult:
                 if include_arrays:
                     row[name] = value.to_dict()
                 continue
+            if isinstance(value, OutputTable):
+                if include_arrays:
+                    row[name] = value.to_dict()
+                continue
             if isinstance(value, np.ndarray):
                 if include_arrays:
                     row[name] = value.tolist()
@@ -302,6 +306,68 @@ class BetaOutputDF:
 
     def to_dataframe(self):
         """Return the three columns as a pandas DataFrame."""
+        try:
+            import pandas as pd
+        except ImportError as exc:  # pragma: no cover - depends on environment
+            raise ImportError(
+                "to_dataframe() requires pandas. Install it with "
+                "`pip install 'dfbayes[pandas]'`."
+            ) from exc
+        return pd.DataFrame(self.to_dict())
+
+
+@dataclass
+class OutputTable:
+    """A small stand-in for an R data frame, with optional pandas export.
+
+    Columns are stored in insertion order.  Attribute access is provided for
+    convenience, so ``table.Bayes_power`` and ``table["Bayes_power"]`` are
+    equivalent.
+    """
+
+    data: dict[str, np.ndarray]
+
+    def __post_init__(self) -> None:
+        self.data = {
+            name: np.asarray(values, dtype=float)
+            for name, values in self.data.items()
+        }
+        lengths = {len(values) for values in self.data.values()}
+        if len(lengths) > 1:
+            raise ValueError("OutputTable columns must have equal length")
+
+    @property
+    def columns(self) -> tuple[str, ...]:
+        return tuple(self.data)
+
+    @property
+    def shape(self) -> tuple[int, int]:
+        length = len(next(iter(self.data.values()))) if self.data else 0
+        return (length, len(self.data))
+
+    def __len__(self) -> int:
+        return self.shape[0]
+
+    def __getitem__(self, key: str) -> np.ndarray:
+        if key not in self.data:
+            raise KeyError(key)
+        return self.data[key]
+
+    def __getattr__(self, name: str) -> np.ndarray:
+        data = self.__dict__.get("data", {})
+        if name in data:
+            return data[name]
+        raise AttributeError(name)
+
+    def __iter__(self) -> Iterator[np.ndarray]:
+        for name in self.columns:
+            yield self.data[name]
+
+    def to_dict(self) -> dict[str, list[float]]:
+        return {name: values.tolist() for name, values in self.data.items()}
+
+    def to_dataframe(self):
+        """Return the table as a pandas DataFrame."""
         try:
             import pandas as pd
         except ImportError as exc:  # pragma: no cover - depends on environment
@@ -723,6 +789,65 @@ class BivariateConcordanceStarOut(DFBAResult):
     post_median_star: float | None
     eti_lower_star: float | None
     eti_upper_star: float | None
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 simulation result classes
+# ---------------------------------------------------------------------------
+
+@dataclass(repr=False)
+class SimDataOut(DFBAResult):
+    R_CLASS: ClassVar[str] = "dfba_sim_data_out"
+    R_FIELDS: ClassVar[tuple[str, ...]] = ("pvalue", "prH1", "E", "C", "design")
+
+    pvalue: float
+    prH1: float
+    E: np.ndarray
+    C: np.ndarray
+    design: str
+
+
+@dataclass(repr=False)
+class PowerCurveOut(DFBAResult):
+    R_CLASS: ClassVar[str] = "dfba_power_curve_out"
+    R_FIELDS: ClassVar[tuple[str, ...]] = (
+        "n", "nsims", "model", "design", "a0", "b0", "effect_crit",
+        "block_max", "outputdf",
+    )
+
+    n: float
+    nsims: int
+    model: str
+    design: str
+    a0: float
+    b0: float
+    effect_crit: float
+    block_max: float
+    outputdf: OutputTable
+
+    @property
+    def delta_vec(self) -> np.ndarray:
+        """The delta grid stored in ``outputdf.delta_value``."""
+        return self.outputdf.delta_value
+
+
+@dataclass(repr=False)
+class TPowerOut(DFBAResult):
+    R_CLASS: ClassVar[str] = "dfba_t_power_out"
+    R_FIELDS: ClassVar[tuple[str, ...]] = (
+        "nsims", "model", "design", "effect_crit", "deltav", "a0", "b0",
+        "block_max", "outputdf",
+    )
+
+    nsims: int
+    model: str
+    design: str
+    effect_crit: float
+    deltav: float
+    a0: float
+    b0: float
+    block_max: float
+    outputdf: OutputTable
 
 
 def results_to_dataframe(
