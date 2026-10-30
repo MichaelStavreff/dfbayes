@@ -14,7 +14,7 @@ import html
 import json
 import math
 from dataclasses import dataclass
-from typing import Any, ClassVar, Iterator
+from typing import Any, ClassVar, Iterable, Iterator
 
 import numpy as np
 
@@ -723,3 +723,42 @@ class BivariateConcordanceStarOut(DFBAResult):
     post_median_star: float | None
     eti_lower_star: float | None
     eti_upper_star: float | None
+
+
+def results_to_dataframe(
+    results: Iterable[DFBAResult],
+    *,
+    include_arrays: bool = False,
+    include_class: bool = True,
+):
+    """Combine many result objects into one pandas DataFrame.
+
+    Rows follow the input order.  ``result_class`` records the R S4 class name
+    so heterogeneous batches can be filtered.  Columns are the union of the
+    scalar slots; array slots are omitted unless ``include_arrays=True``.
+    pandas is an optional dependency (``pip install 'dfbayes[pandas]'``).
+    """
+    try:
+        import pandas as pd
+    except ImportError as exc:  # pragma: no cover - depends on environment
+        raise ImportError(
+            "results_to_dataframe() requires pandas. Install it with "
+            "`pip install 'dfbayes[pandas]'`."
+        ) from exc
+
+    frames = []
+    for result in results:
+        if not isinstance(result, DFBAResult):
+            raise TypeError(
+                "results_to_dataframe() expects DFBAResult instances, "
+                f"got {type(result).__name__}"
+            )
+        frame = result.to_dataframe(include_arrays=include_arrays)
+        if include_class:
+            frame.insert(0, "result_class", result.R_CLASS)
+        frames.append(frame)
+
+    columns = ["result_class"] if include_class else None
+    if not frames:
+        return pd.DataFrame(columns=columns)
+    return pd.concat(frames, ignore_index=True, sort=False)

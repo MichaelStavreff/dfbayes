@@ -335,3 +335,74 @@ def test_interpret_handles_nan_and_infinity():
 def test_interpret_without_bf10():
     text = RESULTS["dfba_median_test_out"].interpret()
     assert "no single Bayes factor" in text
+
+
+def test_results_to_dataframe_batches_rows():
+    pd = pytest.importorskip("pandas")
+    results = [
+        d.dfba_binomial(16, 2),
+        d.dfba_binomial(5, 5),
+    ]
+    frame = d.results_to_dataframe(results)
+    assert isinstance(frame, pd.DataFrame)
+    assert list(frame["result_class"]) == ["dfba_binomial_out"] * 2
+    assert list(frame["n1"]) == [16.0, 5.0]
+    assert frame.index.tolist() == [0, 1]
+
+
+def test_results_to_dataframe_unions_heterogeneous_columns():
+    pd = pytest.importorskip("pandas")
+    frame = d.results_to_dataframe(
+        [d.dfba_binomial(16, 2), d.dfba_mcnemar(17, 2)]
+    )
+    assert isinstance(frame, pd.DataFrame)
+    assert "n1" in frame.columns
+    assert "n_10" in frame.columns
+    assert pd.isna(frame.loc[0, "n_10"])
+    assert pd.isna(frame.loc[1, "n1"])
+
+
+def test_results_to_dataframe_can_include_arrays_and_skip_class():
+    pd = pytest.importorskip("pandas")
+    frame = d.results_to_dataframe(
+        [d.dfba_sign_test(MEASURE_1, MEASURE_2)],
+        include_arrays=True,
+        include_class=False,
+    )
+    assert "result_class" not in frame.columns
+    assert frame.loc[0, "Y1"] == RESULTS["dfba_sign_test_out"].Y1.tolist()
+
+
+def test_results_to_dataframe_empty_input():
+    pd = pytest.importorskip("pandas")
+    frame = d.results_to_dataframe([])
+    assert isinstance(frame, pd.DataFrame)
+    assert frame.empty
+    assert list(frame.columns) == ["result_class"]
+
+
+def test_results_to_dataframe_rejects_non_results():
+    pytest.importorskip("pandas")
+    with pytest.raises(TypeError, match="DFBAResult"):
+        d.results_to_dataframe([object()])
+
+
+def test_pandas_series_are_accepted_as_vectors():
+    pd = pytest.importorskip("pandas")
+    result = d.dfba_sign_test(
+        pd.Series(MEASURE_1), pd.Series(MEASURE_2)
+    )
+    expected = d.dfba_sign_test(MEASURE_1, MEASURE_2)
+    assert result.BF10 == pytest.approx(expected.BF10)
+    assert result.n_pos == expected.n_pos
+    assert result.n_neg == expected.n_neg
+
+
+def test_pandas_series_nan_is_treated_as_missing():
+    pd = pytest.importorskip("pandas")
+    y1 = pd.Series([1.0, 2.0, None, 4.0])
+    y2 = pd.Series([0.0, 3.0, 1.0, 5.0])
+    result = d.dfba_sign_test(y1, y2)
+    expected = d.dfba_sign_test([1.0, 2.0, None, 4.0], [0.0, 3.0, 1.0, 5.0])
+    assert result.BF10 == pytest.approx(expected.BF10)
+    assert result.n_pos == expected.n_pos

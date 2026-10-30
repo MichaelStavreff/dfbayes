@@ -178,9 +178,10 @@ numeric result.
    `summary()` reproduces field names/order, not R's exact `sprintf` layout.
 9. **Result helpers.** `to_dict()`, `to_json()`, `to_dataframe()`, `bf10`,
    `credible_interval`, `posterior_mean`, `posterior_median`,
-   `probability_h1`, `interpret()`, and `_repr_html_()` are additions, not R
-   API. `to_json()` maps non-finite values to `null` because JSON has no NaN or
-   infinity. `to_dataframe()` omits array slots unless `include_arrays=True`.
+   `probability_h1`, `interpret()`, `_repr_html_()`, and
+   `results_to_dataframe()` are additions, not R API. `to_json()` maps
+   non-finite values to `null` because JSON has no NaN or infinity.
+   `to_dataframe()` omits array slots unless `include_arrays=True`.
 
 ## Out of scope (Phase 1)
 

@@ -32,6 +32,7 @@ from .results import (
     SignTestOut,
     WilcoxonLargeOut,
     WilcoxonSmallOut,
+    results_to_dataframe,
 )
 from .sign_test import dfba_sign_test
 from .wilcoxon import dfba_wilcoxon
@@ -70,4 +71,6 @@ __all__ = [
     "SignTestOut",
     "WilcoxonLargeOut",
     "WilcoxonSmallOut",
+    # batch helpers
+    "results_to_dataframe",
 ]

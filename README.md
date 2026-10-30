@@ -81,6 +81,28 @@ res._repr_html_()    # compact HTML table in Jupyter
 object columns when `include_arrays=True`. `BetaOutputDF` (the density table
 returned by `dfba_beta_descriptive`) also has `to_dict()` and `to_dataframe()`.
 
+### Batch workflows
+
+```python
+from dfbayes import dfba_mcnemar, results_to_dataframe
+
+batch = [dfba_mcnemar(n_01=n, n_10=20 - n) for n in range(1, 20)]
+frame = results_to_dataframe(batch)
+frame[frame["BF10point"] > 3]
+```
+
+`results_to_dataframe()` stacks one row per result, adds a `result_class`
+column, and unions heterogeneous fields. Use `include_arrays=True` to keep
+array slots as object columns, or `include_class=False` to omit the class
+column. pandas Series are accepted anywhere a numeric vector is expected:
+
+```python
+import pandas as pd
+from dfbayes import dfba_sign_test
+
+dfba_sign_test(pd.Series(y1), pd.Series(y2))
+```
+
 ### Plotting
 
 ```python
