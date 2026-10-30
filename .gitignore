@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Upstream R sources are read-only inputs, not part of the port
+upstream/
+
+# R / fixture scratch
+.Rlib/
+Rplots.pdf
+tests/fixtures/*.tmp
