@@ -17,22 +17,42 @@ Phase 1 is the deterministic closed-form core plus the `method="large"`
 approximations. The stochastic small-sample paths are ported with vectorised
 numpy sampling and tested against frozen R intermediates; see `DECISION.md`.
 
-`plot()` methods and the RNG-dependent simulation/power functions are out of
-scope for Phase 1. See `COVERAGE.md`.
+R's S4 `plot()` methods are not ported. `dfbayes` instead ships an optional,
+Python-native matplotlib layer described below. The RNG-dependent
+simulation/power functions are out of scope for Phase 1. See `COVERAGE.md`.
 
 ## Install
 
 ```sh
 uv sync
+# or, for pandas and plotting support:
+pip install 'dfbayes[all]'
 ```
+
+Core dependencies are numpy and scipy. pandas and matplotlib are optional:
+
+| Extra | Enables |
+| --- | --- |
+| `dfbayes[pandas]` | `to_dataframe()` |
+| `dfbayes[plot]` | `plot()` |
+| `dfbayes[all]` | both |
 
 ## Usage
 
 ```python
-from dfbayes import dfba_binomial, dfba_mann_whitney
+from dfbayes import dfba_binomial, dfba_mann_whitney, dfba_sign_test
 
 res = dfba_binomial(n1=16, n2=2)
 print(res.phimean, res.eti_lower, res.eti_upper)
+print(res.posterior_mean)        # phimean
+print(res.credible_interval)     # (eti_lower, eti_upper)
+
+sign = dfba_sign_test(
+    [1.49, 0.64, 0.96, 2.34, 0.78, 1.29],
+    [0.53, 0.71, 0.62, 1.01, 0.55, 0.91],
+)
+print(sign.bf10)                 # Bayes factor for H1 over H0
+print(sign.interpret())          # "BF10 = ...: ... evidence for H1."
 
 mw = dfba_mann_whitney(
     E=[43, 45, 47, 50, 54, 58, 60, 63, 69, 84, 85, 91,
@@ -46,6 +66,34 @@ print(mw.method, mw.BF10)
 Result objects are dataclasses whose field names match the R S4 list slots
 exactly, in the same order. `summary()` prints the fields in R order; `repr()`
 gives a compact view.
+
+### Interchange and notebooks
+
+```python
+res.to_dict()        # plain Python dict; arrays become lists
+res.to_json()        # strict JSON; NaN/Inf become null
+res.to_dataframe()   # one-row pandas DataFrame (scalar slots)
+res.to_dataframe(include_arrays=True)
+res._repr_html_()    # compact HTML table in Jupyter
+```
+
+`to_dataframe()` omits array-valued slots by default and includes them as
+object columns when `include_arrays=True`. `BetaOutputDF` (the density table
+returned by `dfba_beta_descriptive`) also has `to_dict()` and `to_dataframe()`.
+
+### Plotting
+
+```python
+import matplotlib.pyplot as plt
+
+ax = res.plot()                 # returns the matplotlib Axes
+ax = mw.plot(ax=ax)             # draw on an existing axes
+plt.savefig("posterior.png")
+```
+
+`plot()` chooses a sensible view per result: beta densities with ETI/HDI bands,
+discrete omega/phi posteriors, contrast quantiles, or Bayes-factor null regions.
+
 
 ## Development
 

@@ -25,12 +25,19 @@ dependencies = [
   "scipy>=1.10",
 ]
 
+[project.optional-dependencies]
+pandas = ["pandas>=1.5"]
+plot = ["matplotlib>=3.6"]
+all = ["pandas>=1.5", "matplotlib>=3.6"]
+
 [project.urls]
 Upstream = "https://CRAN.R-project.org/package=DFBA"
 
 [dependency-groups]
 dev = [
   "pytest>=8",
+  "pandas>=1.5",
+  "matplotlib>=3.6",
 ]
 
 [tool.hatch.build.targets.wheel]

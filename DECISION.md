@@ -171,12 +171,21 @@ numeric result.
 7. **`dfba_gamma` matrix expansion.** R expands a table/matrix row-major
    (`x` = row, `y` = column) and uses `int(count)` per cell. Python accepts a
    2-D array and indexes it explicitly; column-major storage is not assumed.
-8. **`plot()` and text `show()`.** The 15 `plot()` methods are out of scope.
+8. **`plot()` and text `show()`.** The 15 R `plot()` S4 methods are not
+   ported. In their place the package offers an optional, Python-native
+   matplotlib layer (`result.plot()`) that returns an `Axes`; it is a
+   usability extension, not a reproduction of R's base-graphics output.
    `summary()` reproduces field names/order, not R's exact `sprintf` layout.
+9. **Result helpers.** `to_dict()`, `to_json()`, `to_dataframe()`, `bf10`,
+   `credible_interval`, `posterior_mean`, `posterior_median`,
+   `probability_h1`, `interpret()`, and `_repr_html_()` are additions, not R
+   API. `to_json()` maps non-finite values to `null` because JSON has no NaN or
+   infinity. `to_dataframe()` omits array slots unless `include_arrays=True`.
 
 ## Out of scope (Phase 1)
 
-- The 15 `plot()` S4 methods. They are display-only and require R graphics.
+- The 15 R `plot()` S4 methods. The Python-native plotting layer above replaces
+  them for Python users but does not reproduce R's base-graphics output.
 - Phase 2: `dfba_sim_data`, `dfba_power_curve`, `dfba_bayes_vs_t_power`.
   Their deterministic aggregation is designed in the RNG section above and is
   implemented after Phase 1 is green.

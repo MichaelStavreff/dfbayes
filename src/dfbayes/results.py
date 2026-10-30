@@ -10,6 +10,9 @@ duplicate for ``summary()`` and fixture checks, while the dataclass has a single
 
 from __future__ import annotations
 
+import html
+import json
+import math
 from dataclasses import dataclass
 from typing import Any, ClassVar, Iterator
 
@@ -32,6 +35,50 @@ def _format_value(value: Any) -> str:
     return repr(value)
 
 
+def _plain_value(value: Any) -> Any:
+    """Convert numpy containers to JSON-friendly Python objects."""
+    if isinstance(value, BetaOutputDF):
+        return value.to_dict()
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
+def _json_safe(value: Any) -> Any:
+    """Recursively replace non-finite floats with ``None`` for strict JSON."""
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, np.generic):
+        return _json_safe(value.item())
+    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+        return None
+    return value
+
+
+def _first_attr(result: Any, names: tuple[str, ...]) -> Any:
+    for name in names:
+        if name in result.R_FIELDS:
+            return getattr(result, name)
+    return None
+
+
+def _evidence_label(bf: float) -> str:
+    """Jeffreys-style evidence category for a Bayes factor >= 1."""
+    if bf < 3.0:
+        return "anecdotal"
+    if bf < 10.0:
+        return "moderate"
+    if bf < 30.0:
+        return "strong"
+    if bf < 100.0:
+        return "very strong"
+    return "extreme"
+
+
 class DFBAResult:
     """Base class for all R S4 list-subclass results."""
 
@@ -50,6 +97,169 @@ class DFBAResult:
         for name in self.R_FIELDS[:4]:
             parts.append(f"{name}={_format_value(getattr(self, name))}")
         return f"{type(self).__name__}({', '.join(parts)}, ...)"
+
+    def __str__(self) -> str:
+        return self.summary()
+
+    # -- Pythonic accessors -------------------------------------------------
+
+    @property
+    def bf10(self) -> float | None:
+        """Bayes factor for H1 over H0, when the result has one.
+
+        ``dfba_mcnemar`` reports both a point and an interval Bayes factor;
+        this accessor returns the point value.  The median test reports one
+        factor per group, so it has no single value and returns ``None``.
+        """
+        return _first_attr(
+            self, ("BF10", "bayes_factor", "BF10point", "BF10interval")
+        )
+
+    @property
+    def credible_interval(self) -> tuple[float, float] | None:
+        """Equal-tailed interval if available, otherwise the HDI."""
+        for lower, upper in (
+            ("eti_lower", "eti_upper"),
+            ("hdi_lower", "hdi_upper"),
+        ):
+            if lower in self.R_FIELDS and upper in self.R_FIELDS:
+                low = getattr(self, lower)
+                high = getattr(self, upper)
+                if low is not None and high is not None:
+                    return (low, high)
+        return None
+
+    @property
+    def posterior_mean(self) -> float | None:
+        return _first_attr(
+            self,
+            ("post_mean", "phimean", "omegabar", "phibar", "mean", "x_mean"),
+        )
+
+    @property
+    def posterior_median(self) -> float | None:
+        return _first_attr(
+            self, ("post_median", "phimedian", "x_median", "median")
+        )
+
+    @property
+    def probability_h1(self) -> float | None:
+        return _first_attr(
+            self, ("prH1", "postH1", "post_H1", "prob_positive_delta")
+        )
+
+    # -- Interchange --------------------------------------------------------
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the R slots as a plain Python dictionary.
+
+        Array slots become lists.  The duplicated ``prob_interval`` slot in the
+        star concordance result collapses to one key, matching the dataclass.
+        """
+        result: dict[str, Any] = {}
+        for name in self.R_FIELDS:
+            if name not in result:
+                result[name] = _plain_value(getattr(self, name))
+        return result
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        """Serialise the result to strict JSON.
+
+        R's ``NA``/``NaN``/``Inf`` have no JSON representation, so non-finite
+        values become ``null``.  Use ``to_dict()`` if you need to preserve
+        them.
+        """
+        return json.dumps(
+            _json_safe(self.to_dict()), indent=indent, allow_nan=False
+        )
+
+    def to_dataframe(self, *, include_arrays: bool = False):
+        """Return a one-row pandas DataFrame of the result.
+
+        Scalar slots are included by default.  Set ``include_arrays=True`` to
+        add array-valued slots as object columns; pandas is an optional
+        dependency (``pip install 'dfbayes[pandas]'``).
+        """
+        try:
+            import pandas as pd
+        except ImportError as exc:  # pragma: no cover - depends on environment
+            raise ImportError(
+                "to_dataframe() requires pandas. Install it with "
+                "`pip install 'dfbayes[pandas]'`."
+            ) from exc
+
+        row: dict[str, Any] = {}
+        for name in dict.fromkeys(self.R_FIELDS):
+            value = getattr(self, name)
+            if isinstance(value, BetaOutputDF):
+                if include_arrays:
+                    row[name] = value.to_dict()
+                continue
+            if isinstance(value, np.ndarray):
+                if include_arrays:
+                    row[name] = value.tolist()
+                continue
+            row[name] = value
+        return pd.DataFrame([row])
+
+    def _repr_html_(self) -> str:
+        """Compact HTML table for Jupyter notebooks."""
+        rows = []
+        for name in dict.fromkeys(self.R_FIELDS):
+            value = _format_value(getattr(self, name))
+            rows.append(
+                "<tr><th style='text-align:left;padding:2px 8px'>"
+                f"{html.escape(name)}</th>"
+                "<td style='text-align:left;padding:2px 8px'>"
+                f"{html.escape(value)}</td></tr>"
+            )
+        return (
+            "<div class='dfbayes-result'>"
+            f"<strong>{html.escape(self.R_CLASS)}</strong>"
+            "<table style='border-collapse:collapse'>"
+            + "".join(rows)
+            + "</table></div>"
+        )
+
+    def interpret(self) -> str:
+        """Return a short, human-readable Bayes-factor interpretation."""
+        bf = self.bf10
+        if bf is None:
+            return (
+                f"{self.R_CLASS} has no single Bayes factor; "
+                "inspect the result fields directly."
+            )
+        try:
+            value = float(bf)
+        except (TypeError, ValueError):
+            return f"BF10 = {bf!r}"
+
+        if math.isnan(value):
+            return "BF10 is NaN: the Bayes factor is undefined."
+        if math.isinf(value):
+            side = "H1" if value > 0 else "H0"
+            return f"BF10 is infinite: extreme evidence for {side}."
+
+        if value < 1.0:
+            bf01 = math.inf if value == 0.0 else 1.0 / value
+            return (
+                f"BF10 = {value:.3g} (BF01 = {bf01:.3g}): "
+                f"{_evidence_label(bf01)} evidence for H0."
+            )
+        return (
+            f"BF10 = {value:.3g}: "
+            f"{_evidence_label(value)} evidence for H1."
+        )
+
+    def plot(self, ax=None, **kwargs):
+        """Plot the result with matplotlib and return the ``Axes``.
+
+        Plotting is optional; install ``dfbayes[plot]``.  Pass ``ax=`` to draw
+        on an existing axes.
+        """
+        from .plotting import plot_result
+
+        return plot_result(self, ax=ax, **kwargs)
 
 
 @dataclass
@@ -87,12 +297,26 @@ class BetaOutputDF:
         for name in self.columns:
             yield getattr(self, name)
 
+    def to_dict(self) -> dict[str, list[float]]:
+        return {name: getattr(self, name).tolist() for name in self.columns}
+
+    def to_dataframe(self):
+        """Return the three columns as a pandas DataFrame."""
+        try:
+            import pandas as pd
+        except ImportError as exc:  # pragma: no cover - depends on environment
+            raise ImportError(
+                "to_dataframe() requires pandas. Install it with "
+                "`pip install 'dfbayes[pandas]'`."
+            ) from exc
+        return pd.DataFrame(self.to_dict())
+
 
 # ---------------------------------------------------------------------------
 # Phase 1 result classes
 # ---------------------------------------------------------------------------
 
-@dataclass
+@dataclass(repr=False)
 class BinomialOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_binomial_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -117,7 +341,7 @@ class BinomialOut(DFBAResult):
     hdi_upper: float | None
 
 
-@dataclass
+@dataclass(repr=False)
 class SignTestOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_sign_test_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -149,7 +373,7 @@ class SignTestOut(DFBAResult):
     BF01: float
 
 
-@dataclass
+@dataclass(repr=False)
 class MedianTestOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_median_test_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -179,7 +403,7 @@ class MedianTestOut(DFBAResult):
     BF10C: float
 
 
-@dataclass
+@dataclass(repr=False)
 class BetaDescriptiveOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_beta_descriptive_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -202,7 +426,7 @@ class BetaDescriptiveOut(DFBAResult):
     outputdf: BetaOutputDF
 
 
-@dataclass
+@dataclass(repr=False)
 class PointBFOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_point_BF_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -222,7 +446,7 @@ class PointBFOut(DFBAResult):
     dpostH0: float
 
 
-@dataclass
+@dataclass(repr=False)
 class IntervalBFOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_interval_BF_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -245,7 +469,7 @@ class IntervalBFOut(DFBAResult):
     postH1: float
 
 
-@dataclass
+@dataclass(repr=False)
 class BetaContrastOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_beta_contrast_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -271,7 +495,7 @@ class BetaContrastOut(DFBAResult):
     b0_vec: np.ndarray
 
 
-@dataclass
+@dataclass(repr=False)
 class GammaOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_gamma_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -293,7 +517,7 @@ class GammaOut(DFBAResult):
     eti_upper: float | None
 
 
-@dataclass
+@dataclass(repr=False)
 class MannWhitneySmallOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_mann_whitney_small_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -324,7 +548,7 @@ class MannWhitneySmallOut(DFBAResult):
     eti_upper: float
 
 
-@dataclass
+@dataclass(repr=False)
 class MannWhitneyLargeOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_mann_whitney_large_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -358,7 +582,7 @@ class MannWhitneyLargeOut(DFBAResult):
     BF10: float
 
 
-@dataclass
+@dataclass(repr=False)
 class WilcoxonSmallOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_wilcoxon_small_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -388,7 +612,7 @@ class WilcoxonSmallOut(DFBAResult):
     cumulative_phi: np.ndarray
 
 
-@dataclass
+@dataclass(repr=False)
 class WilcoxonLargeOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_wilcoxon_large_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -419,7 +643,7 @@ class WilcoxonLargeOut(DFBAResult):
     hdi_upper: float
 
 
-@dataclass
+@dataclass(repr=False)
 class McnemarOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_mcnemar_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -444,7 +668,7 @@ class McnemarOut(DFBAResult):
     postH1: float
 
 
-@dataclass
+@dataclass(repr=False)
 class BivariateConcordanceOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_bivariate_concordance_out"
     R_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -466,7 +690,7 @@ class BivariateConcordanceOut(DFBAResult):
     eti_upper: float | None
 
 
-@dataclass
+@dataclass(repr=False)
 class BivariateConcordanceStarOut(DFBAResult):
     R_CLASS: ClassVar[str] = "dfba_bivariate_concordance_star_out"
     # R appends a second "prob_interval" slot. Keep it here for summary().
