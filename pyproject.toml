@@ -7,7 +7,8 @@ name = "dfbayes"
 version = "0.1.0"
 description = "Distribution-free Bayesian analysis: a faithful Python port of R's DFBA"
 readme = "README.md"
-license = { text = "GPL-2.0-only" }
+license = "GPL-2.0-only"
+license-files = ["LICENSE", "NOTICE", "AUTHORS"]
 requires-python = ">=3.10"
 authors = [
   { name = "dfbayes contributors" },
@@ -16,7 +17,6 @@ keywords = ["bayesian", "distribution-free", "nonparametric", "statistics"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
   "Programming Language :: Python :: 3",
   "Topic :: Scientific/Engineering :: Mathematics",
 ]

@@ -1,0 +1,22 @@
+dfbayes — a Python port of DFBA
+================================
+
+Upstream package: DFBA 0.1.0 ("Distribution-Free Bayesian Analysis")
+Upstream authors:
+  Daniel H. Barch <daniel.barch@tufts.edu>
+  Richard A. Chechile <richard.chechile@tufts.edu>
+Upstream institution: Tufts University
+Upstream source: https://CRAN.R-project.org/package=DFBA
+CRAN publication date: 2023-12-13
+Upstream licence: GPL-2 (GNU General Public License, version 2)
+
+DFBA's DESCRIPTION declares GPL-2 and ships no separate licence file. This
+port is a derivative work distributed under GPL-2.0-only; see LICENSE.
+
+The upstream copyright notice and authorship above are preserved as required
+by GPL-2 section 2(a). The Python implementation, API adaptations, result
+helpers, and optional plotting layer are by the dfbayes contributors.
+
+DFBA is not bundled in the installed Python package. Its source is vendored
+read-only in the development repository under upstream/ solely as the
+behavioural oracle for fixture generation.
