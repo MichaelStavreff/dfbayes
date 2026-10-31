@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-import matplotlib
+import pytest
 
+# Plotting is an optional extra. Skip the whole module cleanly when the
+# minimal-dependency CI leg runs without `dfbayes[plot]`.
+matplotlib = pytest.importorskip("matplotlib")
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-import pytest
 from matplotlib.axes import Axes
 
 from dfbayes.plotting import plot_result
