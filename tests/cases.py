@@ -8,8 +8,8 @@ Python port with the same inputs.
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from types import SimpleNamespace
-from typing import Callable
 
 import numpy as np
 

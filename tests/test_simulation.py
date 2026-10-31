@@ -55,7 +55,7 @@ def test_sim_data_returns_both_conditions(model, design):
 
 
 def test_sim_data_is_reproducible_with_a_seed():
-    kwargs = dict(n=40, model="normal", design="paired", delta=0.5)
+    kwargs = {"n": 40, "model": "normal", "design": "paired", "delta": 0.5}
     first = d.dfba_sim_data(rng=np.random.default_rng(7), **kwargs)
     second = d.dfba_sim_data(rng=np.random.default_rng(7), **kwargs)
     np.testing.assert_array_equal(first.E, second.E)
@@ -65,7 +65,14 @@ def test_sim_data_is_reproducible_with_a_seed():
 
 
 def test_sim_data_paired_block_effect_cancels_in_differences():
-    kwargs = dict(n=50, model="normal", design="paired", delta=0.5, shape1=2.0, shape2=3.0)
+    kwargs = {
+        "n": 50,
+        "model": "normal",
+        "design": "paired",
+        "delta": 0.5,
+        "shape1": 2.0,
+        "shape2": 3.0,
+    }
     plain = d.dfba_sim_data(block_max=0.0, rng=np.random.default_rng(11), **kwargs)
     blocked = d.dfba_sim_data(block_max=5.0, rng=np.random.default_rng(11), **kwargs)
     np.testing.assert_allclose(plain.E - plain.C, blocked.E - blocked.C)
@@ -74,23 +81,57 @@ def test_sim_data_paired_block_effect_cancels_in_differences():
 
 
 def test_sim_data_independent_block_effect_changes_values():
-    kwargs = dict(n=50, model="normal", design="independent", delta=0.5)
+    kwargs = {"n": 50, "model": "normal", "design": "independent", "delta": 0.5}
     plain = d.dfba_sim_data(block_max=0.0, rng=np.random.default_rng(12), **kwargs)
     blocked = d.dfba_sim_data(block_max=5.0, rng=np.random.default_rng(12), **kwargs)
     assert not np.allclose(plain.E, blocked.E)
     assert not np.allclose(plain.C, blocked.C)
 
 
+def test_zero_block_max_does_not_advance_the_generator():
+    """R's runif(n, 0, 0) returns zeros without consuming RNG state."""
+    kwargs = {"n": 20, "model": "normal", "design": "paired", "delta": 0.5}
+    consumed = np.random.default_rng(31)
+    d.dfba_sim_data(block_max=0.0, rng=consumed, **kwargs)
+    reference = np.random.default_rng(31)
+    reference.normal(0.0, 1.0, 20)
+    reference.normal(0.5, 1.0, 20)
+    assert consumed.uniform() == reference.uniform()
+
+    blocked = np.random.default_rng(31)
+    d.dfba_sim_data(block_max=2.0, rng=blocked, **kwargs)
+    blocked_reference = np.random.default_rng(31)
+    blocked_reference.normal(0.0, 1.0, 20)
+    blocked_reference.normal(0.5, 1.0, 20)
+    blocked_reference.uniform(0.0, 2.0, 20)
+    assert blocked.uniform() == blocked_reference.uniform()
+
+
 @pytest.mark.parametrize(
     "model, kwargs, expected_c_mean, expected_e_mean",
     [
-        ("normal", dict(shape1=2.0, shape2=3.0), 0.0, 0.5),
-        ("weibull", dict(shape1=2.0, shape2=3.0), math.gamma(1.5), 0.5 + math.gamma(4 / 3)),
-        ("lognormal", dict(shape1=0.5, shape2=0.7), math.exp(0.125), math.exp(0.5 + 0.245)),
-        ("chisquare", dict(shape1=4.0, shape2=6.0), 4.0, 6.5),
-        ("logistic", dict(shape1=2.0, shape2=3.0), 0.0, 0.5),
-        ("exponential", dict(shape1=2.0, shape2=4.0), 0.5, 0.75),
-        ("gumbel", dict(shape1=2.0, shape2=3.0), 2.0 * EULER_GAMMA, 0.5 + 3.0 * EULER_GAMMA),
+        ("normal", {"shape1": 2.0, "shape2": 3.0}, 0.0, 0.5),
+        (
+            "weibull",
+            {"shape1": 2.0, "shape2": 3.0},
+            math.gamma(1.5),
+            0.5 + math.gamma(4 / 3),
+        ),
+        (
+            "lognormal",
+            {"shape1": 0.5, "shape2": 0.7},
+            math.exp(0.125),
+            math.exp(0.5 + 0.245),
+        ),
+        ("chisquare", {"shape1": 4.0, "shape2": 6.0}, 4.0, 6.5),
+        ("logistic", {"shape1": 2.0, "shape2": 3.0}, 0.0, 0.5),
+        ("exponential", {"shape1": 2.0, "shape2": 4.0}, 0.5, 0.75),
+        (
+            "gumbel",
+            {"shape1": 2.0, "shape2": 3.0},
+            2.0 * EULER_GAMMA,
+            0.5 + 3.0 * EULER_GAMMA,
+        ),
     ],
 )
 def test_model_means(model, kwargs, expected_c_mean, expected_e_mean):
@@ -169,14 +210,14 @@ def test_summary_fast_path_matches_full_analysis():
 
 
 def test_power_curve_structure_and_reproducibility():
-    kwargs = dict(
-        n=20,
-        model="normal",
-        design="paired",
-        delta_step=0.1,
-        samples=8,
-        rng=np.random.default_rng(20261105),
-    )
+    kwargs = {
+        "n": 20,
+        "model": "normal",
+        "design": "paired",
+        "delta_step": 0.1,
+        "samples": 8,
+        "rng": np.random.default_rng(20261105),
+    }
     result = d.dfba_power_curve(**kwargs)
     assert result.R_CLASS == "dfba_power_curve_out"
     assert result.n == 20.0

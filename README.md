@@ -19,6 +19,9 @@ approximations. Phase 2 adds the simulation and power tools
 small-sample paths are ported with vectorised numpy sampling and tested against
 frozen R intermediates; see `DECISION.md`.
 
+The package targets Python 3.10–3.14. Deterministic results are pinned by
+fixtures generated with R 4.6.1 and DFBA 0.1.0.
+
 R's S4 `plot()` methods are not ported. `dfbayes` instead ships an optional,
 Python-native matplotlib layer described below. See `COVERAGE.md` for the
 R-branch-to-test map.
@@ -26,12 +29,19 @@ R-branch-to-test map.
 ## Install
 
 ```sh
-uv sync
+pip install dfbayes
 # or, for pandas and plotting support:
 pip install 'dfbayes[all]'
 ```
 
-Core dependencies are numpy and scipy. pandas and matplotlib are optional:
+For a development checkout:
+
+```sh
+uv sync
+```
+
+Core dependencies are numpy (>=1.24) and scipy (>=1.10). pandas and matplotlib
+are optional:
 
 | Extra | Enables |
 | --- | --- |
@@ -109,7 +119,8 @@ by_n.plot()
 The simulation models are `normal`, `weibull`, `cauchy`, `lognormal`,
 `chisquare`, `logistic`, `exponential`, `gumbel`, and `pareto`. Designs are
 `paired` and `independent`. Sampling uses numpy's `Generator`, so it is not
-bit-compatible with R's `set.seed()`; pass `rng=` for reproducible runs.
+bit-compatible with R's `set.seed()`; pass `rng=` for reproducible runs. See
+the RNG policy in `DECISION.md`.
 
 ### Interchange and notebooks
 
@@ -167,6 +178,8 @@ simulated-data boxplots, or Bayesian-vs-frequentist power curves.
 ```sh
 just build      # uv sync
 just test       # uv run pytest
+just lint       # ruff + mypy
+just dist       # build sdist/wheel and check metadata
 just fixtures   # regenerate golden JSON by running R's DFBA 0.1.0
 ```
 

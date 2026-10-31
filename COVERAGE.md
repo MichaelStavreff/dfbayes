@@ -177,6 +177,7 @@ The star class has R's duplicated `prob_interval` slot; see `DECISION.md`.
 | nine model parameterisations | `test_model_means`, `test_cauchy_scale_and_location`, `test_pareto_support_and_median` |
 | paired block effect cancels in differences | `test_sim_data_paired_block_effect_cancels_in_differences` |
 | independent block effects change both conditions | `test_sim_data_independent_block_effect_changes_values` |
+| `block_max=0` does not consume RNG state (R's `runif(n,0,0)` behaviour) | `test_zero_block_max_does_not_advance_the_generator` |
 | pinned-seed reproducibility | `test_sim_data_is_reproducible_with_a_seed` |
 | output shape, design, ranges | `test_sim_data_returns_both_conditions` |
 

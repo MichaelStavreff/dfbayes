@@ -12,7 +12,6 @@ from typing import Any
 import numpy as np
 from scipy.special import betainc, betaincinv, betaln
 
-
 # ---------------------------------------------------------------------------
 # NA / NaN
 # ---------------------------------------------------------------------------

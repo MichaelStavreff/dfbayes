@@ -249,15 +249,21 @@ def dfba_sim_data(
     generator = _generator(rng)
     c, e = _draw(model_value, n_value, delta_value, s1, s2, generator)
 
+    # R's runif(n, 0, 0) returns zeros without consuming RNG state, so the
+    # port skips the draw when block_max is exactly zero.  The added values
+    # would be zeros, so the returned data are unchanged; only the position
+    # of a caller-supplied Generator moves in lockstep with R.
     if design_value == "independent":
-        b_ex = generator.uniform(0.0, block_value, n_value)
-        b_cn = generator.uniform(0.0, block_value, n_value)
-        e = e + b_ex
-        c = c + b_cn
+        if block_value > 0.0:
+            b_ex = generator.uniform(0.0, block_value, n_value)
+            b_cn = generator.uniform(0.0, block_value, n_value)
+            e = e + b_ex
+            c = c + b_cn
     else:
-        block = generator.uniform(0.0, block_value, n_value)
-        e = e + block
-        c = c + block
+        if block_value > 0.0:
+            block = generator.uniform(0.0, block_value, n_value)
+            e = e + block
+            c = c + block
 
     pvalue, pr_h1 = _summarise(e, c, design_value, a0v, b0v)
     return SimDataOut(
@@ -285,7 +291,7 @@ def _check_nsims(samples: Any) -> int:
         # R accepts this and returns nsims = 0 with NaN/Inf power values from
         # a pathological 1:0 loop. Reject it deliberately; see DECISION.md.
         raise ValueError("samples must be a positive integer")
-    return int(rounded)
+    return rounded
 
 
 def dfba_power_curve(
@@ -319,7 +325,7 @@ def dfba_power_curve(
     n_input = _as_number(n, "n")
     if not math.isfinite(n_input):
         raise ValueError("missing value where TRUE/FALSE needed")
-    n_value = int(round(n_input))
+    n_value = round(n_input)
     if n_value < 20:
         raise ValueError("The function requires n to be an integer that is 20 or larger")
 

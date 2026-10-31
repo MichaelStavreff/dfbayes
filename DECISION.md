@@ -19,7 +19,7 @@ from calling the installed R functions directly.
 
 `dfba` on PyPI is an unrelated dynamic-flux-balance package. This port is
 distributed and imported as **`dfbayes`**. `dfbayes` returned 404 on PyPI when
-checked on 2026-10-29.
+checked on 2026-10-31.
 
 ## Target language: pure Python + numpy
 
@@ -91,7 +91,8 @@ Policy:
 - `dfba_sim_data` → each of the nine models is checked against its analytic
   mean/median or support under a pinned numpy seed. The t-test and large-sample
   posterior are replayed exactly against R for a frozen E/C pair.
-- The sampling wrappers use numpy. They are **not** claimed to match R.
+- The sampling wrappers use numpy. They are **not** claimed to match R, and the
+  package does not ship or depend on an R RNG emulator.
   Two tests per stochastic function: (1) analytic-vs-Monte-Carlo empirical
   probability within ~5 standard errors at the null value (`omega=0.5` uses the
   exact Mann-Whitney U distribution; `phi=0.5` uses the Poisson binomial);
@@ -252,6 +253,14 @@ numeric result.
     `samples=1000`, `dfba_power_curve` fell from 86.6 s to 5.5 s (paired) and
     76.2 s to 3.5 s (independent); `dfba_bayes_vs_t_power` fell from 41.9 s to
     3.0 s and 32.6 s to 2.1 s. No fixture or tolerance was changed.
+14. **Zero-width block effect does not consume RNG state.** R's
+    `runif(n, 0, 0)` returns zeros without advancing `.Random.seed`; numpy's
+    `Generator.uniform(0, 0, n)` does advance. `dfba_sim_data` now skips the
+    block draw when `block_max == 0` (the default), so a caller-supplied
+    `Generator` moves in lockstep with what R's stream would do. The returned
+    values are unchanged because the skipped block was identically zero. This
+    is stream-position fidelity only; the port still does not claim
+    bit-compatible draws. Test: `test_zero_block_max_does_not_advance_the_generator`.
 
 ## Out of scope
 

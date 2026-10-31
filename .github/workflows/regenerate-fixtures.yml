@@ -18,7 +18,10 @@ jobs:
 
       - uses: r-lib/actions/setup-r@v2
         with:
-          r-version: "release"
+          # Fixtures are generated with this exact R version. Do not use
+          # "release": the Mersenne-Twister stream and the fixture diff check
+          # must stay reproducible.
+          r-version: "4.6.1"
           use-public-rspm: true
 
       - name: Install pinned DFBA 0.1.0 from the CRAN archive

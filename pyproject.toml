@@ -17,8 +17,15 @@ keywords = ["bayesian", "distribution-free", "nonparametric", "statistics"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Mathematics",
+  "Typing :: Typed",
 ]
 dependencies = [
   "numpy>=1.24",
@@ -43,6 +50,32 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/dfbayes"]
 
+[tool.hatch.build.targets.sdist]
+# Repository-only files: the sdist carries the package, tests, fixtures and
+# the fixture generator, but not agent instructions or CI configuration.
+exclude = [
+  "/.github",
+  "/AGENTS.md",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["C4", "E4", "E7", "E9", "F", "I", "RUF", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# matplotlib is an optional extra, so the module guards its imports with
+# pytest.importorskip() and therefore cannot put them at the top.
+"tests/test_plotting.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["src/dfbayes"]
+ignore_missing_imports = true
+warn_unused_ignores = true

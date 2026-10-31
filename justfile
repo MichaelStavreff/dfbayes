@@ -8,6 +8,16 @@ build:
 test:
     uv run pytest -q
 
+# Lint and type-check
+lint:
+    uvx --from ruff==0.17.3 ruff check
+    uvx --from mypy==2.4.1 mypy
+
+# Build sdist and wheel, then validate the metadata
+dist:
+    uv build
+    uvx --from twine==7.0.0 twine check dist/*
+
 # Regenerate golden fixtures by running the R original (requires R + DFBA)
 fixtures:
     Rscript tests/fixtures/generate.R

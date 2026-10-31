@@ -48,7 +48,7 @@ from .wilcoxon import dfba_wilcoxon
 
 __version__ = "0.1.0"
 
-__all__ = [
+__all__ = [  # noqa: RUF022 - grouped by kind for readability
     "__version__",
     # functions
     "dfba_beta_bayes_factor",

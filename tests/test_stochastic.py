@@ -265,11 +265,11 @@ def test_wilcoxon_sampler_is_deterministic() -> None:
 
 
 def test_beta_contrast_sampler_is_deterministic() -> None:
-    kwargs = dict(
-        n1_vec=[22, 15],
-        n2_vec=[18, 25],
-        contrast_vec=[1, -1],
-    )
+    kwargs = {
+        "n1_vec": [22, 15],
+        "n2_vec": [18, 25],
+        "contrast_vec": [1, -1],
+    }
     first = d.dfba_beta_contrast(**kwargs, rng=np.random.default_rng(7))
     second = d.dfba_beta_contrast(**kwargs, rng=np.random.default_rng(7))
     other = d.dfba_beta_contrast(**kwargs, rng=np.random.default_rng(8))

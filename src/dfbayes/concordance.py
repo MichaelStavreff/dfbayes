@@ -50,7 +50,7 @@ def _tie_loss(values: list) -> int:
     return sum(t * (t - 1) // 2 for t in counts.values() if t > 1)
 
 
-def _concordance_counts(x: np.ndarray, y: np.ndarray) -> tuple[int, float, float, int, int]:
+def _concordance_counts(x: np.ndarray, y: np.ndarray) -> tuple[float, int, float, int, int]:
     """Return (n_max, nc, nd, Tx, Ty) using R's tau-A tie correction."""
     n = len(x)
     tx = _tie_loss(x.tolist())
@@ -61,7 +61,6 @@ def _concordance_counts(x: np.ndarray, y: np.ndarray) -> tuple[int, float, float
     if n == 0:
         return n_max, 0, 0.0, tx, ty
 
-    xrank = rankdata(x, method="average")
     yrank = rankdata(y, method="average")
     # R: order(x1, -y1) -- ascending x, descending y
     order = np.lexsort((-y, x))

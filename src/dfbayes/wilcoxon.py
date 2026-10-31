@@ -295,7 +295,7 @@ def dfba_wilcoxon(
         )
     n_samples = int(samples)
 
-    y1, y2, n, tpos, tneg = _wilcoxon_signed_rank_stats(y1_all, y2_all)
+    _y1, _y2, n, tpos, tneg = _wilcoxon_signed_rank_stats(y1_all, y2_all)
 
     if method is None:
         method = "large" if n > 24 else "small"

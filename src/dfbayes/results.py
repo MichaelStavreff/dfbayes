@@ -13,8 +13,9 @@ from __future__ import annotations
 import html
 import json
 import math
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Any, ClassVar, Iterable, Iterator
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -465,8 +466,8 @@ class MedianTestOut(DFBAResult):
     postChi: float
     priorEhi: float
     priorChi: float
-    BF10E: float
-    BF10C: float
+    BF10E: float | None
+    BF10C: float | None
 
 
 @dataclass(repr=False)
@@ -577,7 +578,7 @@ class GammaOut(DFBAResult):
     nd: float
     a_post: float
     b_post: float
-    prob_interval: float
+    prob_interval: float | None
     post_median: float
     eti_lower: float | None
     eti_upper: float | None

@@ -363,7 +363,7 @@ def test_results_to_dataframe_unions_heterogeneous_columns():
 
 
 def test_results_to_dataframe_can_include_arrays_and_skip_class():
-    pd = pytest.importorskip("pandas")
+    pytest.importorskip("pandas")
     frame = d.results_to_dataframe(
         [d.dfba_sign_test(MEASURE_1, MEASURE_2)],
         include_arrays=True,

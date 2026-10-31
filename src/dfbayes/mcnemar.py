@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from ._core import (
     check_nonnegative_count,
     check_positive_finite,
@@ -9,7 +11,7 @@ from ._core import (
     qbeta,
 )
 from .beta import dfba_beta_bayes_factor
-from .results import McnemarOut
+from .results import IntervalBFOut, McnemarOut
 
 
 def dfba_mcnemar(
@@ -74,5 +76,5 @@ def dfba_mcnemar(
         eti_upper=eti_upper,
         BF10point=bf_point.BF10,
         BF10interval=bf_interval.BF10,
-        postH1=bf_interval.postH1,
+        postH1=cast(IntervalBFOut, bf_interval).postH1,
     )

@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
 import numpy as np
 
 from ._core import (
     as_float_vector,
-    check_positive_finite,
     check_prob_interval,
     is_na,
     rdiv,
@@ -166,7 +164,7 @@ def dfba_beta_contrast(
         b0_vec = np.ones(len(n1))
 
     (
-        n1, n2, contrast, a0, b0, pi, a_vec, b_vec, mean_delta
+        n1, _n2, contrast, a0, b0, pi, a_vec, b_vec, mean_delta
     ) = _validate_beta_contrast(
         n1_vec, n2_vec, contrast_vec, a0_vec, b0_vec, prob_interval, samples
     )
