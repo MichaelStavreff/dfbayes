@@ -12,7 +12,7 @@ import math
 from typing import Any
 
 import numpy as np
-from scipy.stats import t as student_t
+from scipy.special import stdtr
 
 from ._core import check_positive_finite, is_na, rdiv
 from .mann_whitney import _mann_whitney_prh1
@@ -197,12 +197,14 @@ def _summarise(
             (float(np.var(e, ddof=1)) + float(np.var(c, ddof=1))) / n
         )
         t_sample = rdiv(numerator, denominator)
-        pvalue = float(student_t.sf(t_sample, 2 * n - 2))
+        # Student-t survival function, without the rv_continuous dispatch
+        # overhead.  scipy's t.sf(x, df) is exactly stdtr(df, -x).
+        pvalue = float(stdtr(2 * n - 2, -t_sample))
         pr_h1 = _mann_whitney_prh1(e, c, a0, b0)
     else:
         d = e - c
         t_sample = rdiv(math.sqrt(n) * float(np.mean(d)), float(np.std(d, ddof=1)))
-        pvalue = float(student_t.sf(t_sample, n - 1))
+        pvalue = float(stdtr(n - 1, -t_sample))
         pr_h1 = _wilcoxon_prh1(e, c, a0, b0)
     return pvalue, float(pr_h1)
 

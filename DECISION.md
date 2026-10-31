@@ -261,6 +261,14 @@ numeric result.
     values are unchanged because the skipped block was identically zero. This
     is stream-position fidelity only; the port still does not claim
     bit-compatible draws. Test: `test_zero_block_max_does_not_advance_the_generator`.
+15. **Student-t tail without the `rv_continuous` dispatch.** `_summarise`
+    computes the one-tailed p-value with `scipy.special.stdtr(df, -t)`, which
+    is exactly what `scipy.stats.t.sf(t, df)` calls internally, but without the
+    frozen-distribution argument handling. The result is bit-identical
+    (`t.sf` and `stdtr` agree exactly at every tested `t`/`df`, including
+    `±Inf` and `NaN`). At `samples=500`, `dfba_power_curve` fell from 2.43 s to
+    1.86 s (paired) and 1.54 s to 0.94 s (independent), process CPU, best of
+    three; the test suite and all fixtures are unchanged.
 
 ## Out of scope
 
