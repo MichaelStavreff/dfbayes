@@ -301,6 +301,28 @@ def test_mw_small_public_wrapper() -> None:
     assert 0.0 <= result.eti_lower <= result.eti_upper <= 1.0
 
 
+@pytest.mark.parametrize(
+    "n_e, n_c, expected",
+    [
+        (19, 21, "small"),  # nH = 2*19*21/40 = 19.95
+        (20, 20, "large"),  # nH = 2*20*20/40 = 20.00
+    ],
+)
+def test_method_none_selects_at_the_nH_20_boundary(n_e, n_c, expected) -> None:
+    """Pin both sides of ``nH >= 20`` in R's automatic method selection."""
+    e = np.linspace(0.0, 1.0, n_e)
+    c = np.linspace(0.0, 1.0, n_c)
+    result = d.dfba_mann_whitney(
+        e,
+        c,
+        samples=10_000,
+        rng=np.random.default_rng(42),
+    )
+    assert result.method == expected
+    assert result.R_CLASS == f"dfba_mann_whitney_{expected}_out"
+
+
+
 def test_wilcoxon_small_public_wrapper() -> None:
     result = d.dfba_wilcoxon(
         [1.49, 0.64, 0.96, 2.34, 0.78],

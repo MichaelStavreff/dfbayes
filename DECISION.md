@@ -223,11 +223,23 @@ numeric result.
     list; the values live in `outputdf$delta_value`. The port follows the
     implementation. `PowerCurveOut.delta_vec` is a Python convenience property,
     not an R slot.
-12. **Phase 2 `samples` validation.** R does `nsims <- round(samples)` without
-    validating the result, so `samples=0` produces a pathological `1:0` loop
-    and `NaN` power. The port requires a finite value of at least one and
-    raises `ValueError`; NA still raises `missing value where TRUE/FALSE
-    needed`.
+12. **Phase 2 `samples` validation.** R computes `nsims <- round(samples)` and
+    then `rep(NA, nsims)` without validating. R 4.6.1 behaves as follows for
+    both `dfba_power_curve` and `dfba_bayes_vs_t_power`:
+
+    | `samples` input | R behaviour |
+    | --- | --- |
+    | `NA`, `NaN`, `Inf`, `-Inf` | error: `invalid 'times' argument` |
+    | `-0.6`, `-1`, any value rounding negative | error: `invalid 'times' argument` |
+    | `-0.5`, `-0.4`, `0`, `0.4`, `0.5` (rounds to 0) | returns `nsims = 0` with `NaN`/`Inf` power from a pathological `1:0` loop |
+    | `0.6` and above | accepted; uses R's banker's rounding (`0.6 -> 1`, `1.5 -> 2`, `2.5 -> 2`) |
+
+    The port matches the first two rows. It deliberately rejects the
+    rounds-to-zero row with `samples must be a positive integer` instead of
+    returning undefined `NaN`/`Inf` power. This is an intentional behaviour
+    change for inputs R "accepts", documented here rather than reproduced.
+    Fractions that round to at least one follow R. `None` is the port's NA
+    convention and raises the same `invalid 'times' argument` as `NA`.
 
 ## Out of scope
 

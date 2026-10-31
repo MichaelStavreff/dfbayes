@@ -200,6 +200,40 @@ def test_power_curve_validates_delta_step():
         d.dfba_power_curve(n=20, model="normal", design="paired", delta_step=-0.1)
 
 
+@pytest.mark.parametrize(
+    "samples",
+    [None, float("nan"), float("inf"), float("-inf"), -1, -0.6],
+)
+def test_samples_rejected_where_r_also_errors(samples):
+    with pytest.raises(ValueError, match="invalid 'times' argument"):
+        d.dfba_power_curve(
+            n=20, model="normal", design="paired", samples=samples
+        )
+
+
+@pytest.mark.parametrize("samples", [0, 0.4, 0.5, -0.4, -0.5])
+def test_samples_rounding_to_zero_are_rejected_divergence(samples):
+    # R accepts these and returns nsims=0 with NaN/Inf power. The port rejects
+    # them deliberately; see DECISION.md item 12.
+    with pytest.raises(ValueError, match="samples must be a positive integer"):
+        d.dfba_power_curve(
+            n=20, model="normal", design="paired", samples=samples
+        )
+
+
+@pytest.mark.parametrize("samples, expected", [(0.6, 1), (1.4, 1), (1.5, 2), (2.5, 2)])
+def test_samples_are_rounded_like_r(samples, expected):
+    result = d.dfba_power_curve(
+        n=20,
+        model="normal",
+        design="paired",
+        samples=samples,
+        rng=np.random.default_rng(20261115),
+    )
+    assert result.nsims == expected
+
+
+
 def test_bayes_vs_t_power_structure_and_reproducibility():
     result = d.dfba_bayes_vs_t_power(
         n_min=20,

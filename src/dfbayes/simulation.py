@@ -271,11 +271,21 @@ def dfba_sim_data(
 
 def _check_nsims(samples: Any) -> int:
     if is_na(samples):
-        raise ValueError("missing value where TRUE/FALSE needed")
+        # R reaches rep(NA, round(samples)) and fails here.
+        raise ValueError("invalid 'times' argument")
     value = _as_number(samples, "samples")
-    if not math.isfinite(value) or value < 1.0:
+    if not math.isfinite(value):
+        # R fails inside rep(NA, round(samples)) for Inf and NaN.
+        raise ValueError("invalid 'times' argument")
+    rounded = round(value)
+    if rounded < 0:
+        # Same R failure: rep(NA, -1).
+        raise ValueError("invalid 'times' argument")
+    if rounded == 0:
+        # R accepts this and returns nsims = 0 with NaN/Inf power values from
+        # a pathological 1:0 loop. Reject it deliberately; see DECISION.md.
         raise ValueError("samples must be a positive integer")
-    return int(round(value))
+    return int(rounded)
 
 
 def dfba_power_curve(

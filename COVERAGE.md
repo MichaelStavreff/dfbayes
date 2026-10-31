@@ -109,8 +109,8 @@ The star class has R's duplicated `prob_interval` slot; see `DECISION.md`.
 
 | R branch | Tests |
 | --- | --- |
-| `method=NULL`, `nH >= 20` → large | `mw_large_example` |
-| `method=NULL`, `nH < 20` → small | covered by `mw_small_branch_*` (forced) |
+| `method=NULL`, `nH >= 20` → large | `mw_large_example`, `test_method_none_selects_at_the_nH_20_boundary[20-20-large]` |
+| `method=NULL`, `nH < 20` → small | `test_method_none_selects_at_the_nH_20_boundary[19-21-small]`; forced small `mw_small_branch_*` |
 | explicit `method="large"` | `mw_large_forced_small_data`, `mw_large_forced_19` |
 | explicit `method="small"` | `mw_small_branch_a`, `mw_small_branch_b` (stochastic) |
 | large branch `xs >= .5` | `mw_large_example`, `mw_large_jeffreys`, `mw_large_99` |
@@ -189,6 +189,9 @@ The star class has R's duplicated `prob_interval` slot; see `DECISION.md`.
 | invalid model / design / effect criterion / prior / block | `power_err_model`, `power_err_design`, `power_err_effect_crit`, `power_err_a0_zero`, `power_err_block_neg` |
 | 21-point delta grid and 21 power rows | `test_power_curve_structure_and_reproducibility` |
 | `n` rounded like R | `test_power_curve_rounds_n_like_r` |
+| `samples` errors for NA/NaN/Inf/negative | `test_samples_rejected_where_r_also_errors` |
+| `samples` rounding to zero (deliberate divergence) | `test_samples_rounding_to_zero_are_rejected_divergence` |
+| `samples` rounded like R | `test_samples_are_rounded_like_r` |
 | pinned-seed reproducibility | `test_power_curve_structure_and_reproducibility` |
 | output table and pandas export | `test_output_table_is_pandas_friendly`, `test_power_result_helpers_and_batch_dataframe` |
 | plotting | `test_power_curve_plot` |
@@ -201,6 +204,7 @@ The star class has R's duplicated `prob_interval` slot; see `DECISION.md`.
 | `n_min < 20` / non-integer | `bvt_err_n_min_lt20`, `bvt_err_n_min_nonint` |
 | invalid prior / model / design / effect criterion | `bvt_err_a0_zero`, `bvt_err_model`, `bvt_err_design`, `bvt_err_effect_crit` |
 | 11 sample sizes from `n_min` to `n_min+50` | `test_bayes_vs_t_power_structure_and_reproducibility`, `test_bayes_vs_t_power_sample_size_grid_respects_n_min` |
+| `samples` validation (shared `_check_nsims`) | `test_samples_rejected_where_r_also_errors`, `test_samples_rounding_to_zero_are_rejected_divergence`, `test_samples_are_rounded_like_r` |
 | pinned-seed reproducibility | `test_bayes_vs_t_power_structure_and_reproducibility` |
 | plotting | `test_bayes_vs_t_power_plot` |
 
