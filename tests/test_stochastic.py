@@ -16,6 +16,7 @@ import math
 
 import numpy as np
 import pytest
+from scipy.stats import rankdata
 
 import dfbayes as d
 from dfbayes.contrast import _finish_beta_contrast
@@ -25,6 +26,7 @@ from dfbayes.mann_whitney import (
     _sample_fomega,
 )
 from dfbayes.wilcoxon import (
+    _average_ranks,
     _fphi_counts,
     _sample_fphi,
     _wilcoxon_small_from_counts,
@@ -262,6 +264,25 @@ def test_wilcoxon_sampler_is_deterministic() -> None:
     assert np.array_equal(first, second)
     assert not np.array_equal(first, other)
     assert first.shape == (200,)
+
+
+def test_average_ranks_matches_scipy_including_ties() -> None:
+    """The fast rank helper must reproduce R's average tie handling exactly."""
+    rng = np.random.default_rng(20261106)
+    cases = [
+        np.array([], dtype=float),
+        np.array([1.0]),
+        np.array([2.0, 2.0]),
+        np.full(7, 3.5),
+        np.array([1.0, 1.0, 2.0, 2.0, 2.0, 3.0]),
+        np.array([-2.0, -0.0, 0.0, 2.0]),
+        np.round(rng.normal(size=50), 1),
+        rng.integers(0, 4, size=40).astype(float),
+    ]
+    for values in cases:
+        np.testing.assert_array_equal(
+            _average_ranks(values), rankdata(values, method="average")
+        )
 
 
 def test_beta_contrast_sampler_is_deterministic() -> None:

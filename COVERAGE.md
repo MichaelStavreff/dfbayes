@@ -143,6 +143,7 @@ The star class has R's duplicated `prob_interval` slot; see `DECISION.md`.
 | invalid prior / interval / method | `wil_err_a0_na`, `wil_err_b0_zero`, `wil_err_pi_neg`, `wil_err_pi_gt1`, `wil_err_pi_na`, `wil_err_method` |
 | analytic null at `phi=0.5` (Poisson binomial) | `test_wilcoxon_fphi_matches_poisson_binomial_null` |
 | sampler determinism | `test_wilcoxon_sampler_is_deterministic` |
+| average tie ranks used by `tpos`/`tneg` | `test_average_ranks_matches_scipy_including_ties` |
 | public wrapper shape/range | `test_wilcoxon_small_public_wrapper` |
 
 ## `dfba_beta_contrast` (`dfba_beta_contrast.R`)

@@ -269,6 +269,15 @@ numeric result.
     `±Inf` and `NaN`). At `samples=500`, `dfba_power_curve` fell from 2.43 s to
     1.86 s (paired) and 1.54 s to 0.94 s (independent), process CPU, best of
     three; the test suite and all fixtures are unchanged.
+16. **Average ranks without `scipy.stats.rankdata`.** The Wilcoxon signed-rank
+    statistic needs R's `rank(..., ties.method = "average")`. `_average_ranks`
+    implements it with `argsort` plus a vectorised tie collapse and a no-tie
+    fast path. It is bit-identical to `scipy.stats.rankdata(method="average")`
+    on 2,000 randomised arrays, including heavy integer ties, repeated values
+    and empty/singleton inputs. At `samples=500`, the paired power curve fell
+    from 1.86 s to 0.83 s; the independent path is unchanged. A snapshot of 120
+    large and 120 small Wilcoxon calls (with tied data), 18 power curves and 4
+    `dfba_bayes_vs_t_power` calls is byte-identical before and after.
 
 ## Out of scope
 

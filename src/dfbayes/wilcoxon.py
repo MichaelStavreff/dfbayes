@@ -7,7 +7,6 @@ import warnings
 from typing import Any
 
 import numpy as np
-from scipy.stats import rankdata
 
 from ._core import (
     as_float_vector,
@@ -150,6 +149,33 @@ def _wilcoxon_large_posterior(
     return na + na0 + 1.0, nb + nb0 + 1.0
 
 
+def _average_ranks(values: np.ndarray) -> np.ndarray:
+    """Return R's ``rank(values, ties.method = "average")``.
+
+    Equivalent to ``scipy.stats.rankdata(values, method="average")`` without
+    its per-call dispatch overhead.  Callers pass finite values; the result is
+    bit-identical to scipy's, including tied groups.
+    """
+    n = values.size
+    order = np.argsort(values)
+    ordered = values[order]
+    if n > 1 and np.any(ordered[1:] == ordered[:-1]):
+        boundaries = np.empty(n, dtype=bool)
+        boundaries[0] = True
+        boundaries[1:] = ordered[1:] != ordered[:-1]
+        group = np.cumsum(boundaries) - 1
+        counts = np.bincount(group)
+        ends = np.cumsum(counts)
+        starts = ends - counts
+        average = (starts + 1 + ends) / 2.0
+        ranks = np.empty(n, dtype=float)
+        ranks[order] = average[group]
+        return ranks
+    ranks = np.empty(n, dtype=float)
+    ranks[order] = np.arange(1, n + 1)
+    return ranks
+
+
 def _wilcoxon_signed_rank_stats(
     y1_all: np.ndarray, y2_all: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, int, float, float]:
@@ -175,7 +201,7 @@ def _wilcoxon_signed_rank_stats(
 
     dt = d[nonzero]
     dta = np.abs(dt)
-    dtar = rankdata(dta, method="average")
+    dtar = _average_ranks(dta)
     dtars = dtar * dt / dta
     tpos = float(round(float(np.sum(dtar[dtars > 0]))))
     tneg = n * (n + 1) * 0.5 - tpos
