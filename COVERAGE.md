@@ -193,6 +193,7 @@ The star class has R's duplicated `prob_interval` slot; see `DECISION.md`.
 | `samples` rounding to zero (deliberate divergence) | `test_samples_rounding_to_zero_are_rejected_divergence` |
 | `samples` rounded like R | `test_samples_are_rounded_like_r` |
 | pinned-seed reproducibility | `test_power_curve_structure_and_reproducibility` |
+| summary fast path equals full analysis | `test_summary_fast_path_matches_full_analysis` |
 | output table and pandas export | `test_output_table_is_pandas_friendly`, `test_power_result_helpers_and_batch_dataframe` |
 | plotting | `test_power_curve_plot` |
 

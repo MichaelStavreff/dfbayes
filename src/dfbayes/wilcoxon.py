@@ -138,6 +138,63 @@ def _sample_fphi(tpos: float, n: int, samples: int, rng: Any) -> np.ndarray:
     )
 
 
+def _wilcoxon_large_posterior(
+    tpos: float, n: int, a0: float, b0: float
+) -> tuple[float, float]:
+    """Closed-form beta posterior parameters for the large-sample branch."""
+    na0 = a0 - 1.0
+    nb0 = b0 - 1.0
+    term = (3.0 * tpos) / ((2.0 * n) + 2.0)
+    na = term - 0.25
+    nb = (((3.0 * n) - 1.0) / 4.0) - term
+    return na + na0 + 1.0, nb + nb0 + 1.0
+
+
+def _wilcoxon_signed_rank_stats(
+    y1_all: np.ndarray, y2_all: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, int, float, float]:
+    """Clean paired data and return the signed-rank statistics."""
+    d_all = y1_all - y2_all
+    mask = ~np.isnan(d_all)
+    y1 = y1_all[mask]
+    y2 = y2_all[mask]
+    d = d_all[mask]
+    l1 = len(d)
+
+    if l1 < 3:
+        raise ValueError(
+            "There are not enough values in the Y1 and Y2 vectors for meaningful results."
+        )
+
+    sdd = float(np.std(d, ddof=1))
+    threshold = sdd / 30000.0
+    nonzero = np.abs(d) > threshold
+    n = int(np.sum(nonzero))
+    if n == 0:
+        raise ValueError("Y1 and Y2 differences are all trivial")
+
+    dt = d[nonzero]
+    dta = np.abs(dt)
+    dtar = rankdata(dta, method="average")
+    dtars = dtar * dt / dta
+    tpos = float(round(float(np.sum(dtar[dtars > 0]))))
+    tneg = n * (n + 1) * 0.5 - tpos
+    return y1, y2, n, tpos, tneg
+
+
+def _wilcoxon_prh1(Y1, Y2, a0: float, b0: float) -> float:
+    """Only ``prH1``, skipping interval/HDI work the power loop never uses."""
+    y1_all = as_float_vector(Y1, "Y1")
+    y2_all = as_float_vector(Y2, "Y2")
+    if len(y1_all) != len(y2_all):
+        raise ValueError(
+            "Y1 and Y2 must have the same length. This function is for paired within-block data."
+        )
+    _, _, n, tpos, _ = _wilcoxon_signed_rank_stats(y1_all, y2_all)
+    a_post, b_post = _wilcoxon_large_posterior(tpos, n, a0, b0)
+    return float(1.0 - pbeta(0.5, a_post, b_post))
+
+
 def _wilcoxon_large(
     tpos: float,
     tneg: float,
@@ -149,11 +206,7 @@ def _wilcoxon_large(
 ) -> WilcoxonLargeOut:
     na0 = a0 - 1.0
     nb0 = b0 - 1.0
-    term = (3.0 * tpos) / ((2.0 * n) + 2.0)
-    na = term - 0.25
-    nb = (((3.0 * n) - 1.0) / 4.0) - term
-    a_post = na + na0 + 1.0
-    b_post = nb + nb0 + 1.0
+    a_post, b_post = _wilcoxon_large_posterior(tpos, n, a0, b0)
 
     post_mean = rdiv(a_post, a_post + b_post)
     post_median = qbeta(0.5, a_post, b_post)
@@ -242,31 +295,7 @@ def dfba_wilcoxon(
         )
     n_samples = int(samples)
 
-    d_all = y1_all - y2_all
-    mask = ~np.isnan(d_all)
-    y1 = y1_all[mask]
-    y2 = y2_all[mask]
-    d = d_all[mask]
-    l1 = len(d)
-
-    if l1 < 3:
-        raise ValueError(
-            "There are not enough values in the Y1 and Y2 vectors for meaningful results."
-        )
-
-    sdd = float(np.std(d, ddof=1))
-    threshold = sdd / 30000.0
-    nonzero = np.abs(d) > threshold
-    n = int(np.sum(nonzero))
-    if n == 0:
-        raise ValueError("Y1 and Y2 differences are all trivial")
-
-    dt = d[nonzero]
-    dta = np.abs(dt)
-    dtar = rankdata(dta, method="average")
-    dtars = dtar * dt / dta
-    tpos = float(round(float(np.sum(dtar[dtars > 0]))))
-    tneg = n * (n + 1) * 0.5 - tpos
+    y1, y2, n, tpos, tneg = _wilcoxon_signed_rank_stats(y1_all, y2_all)
 
     if method is None:
         method = "large" if n > 24 else "small"

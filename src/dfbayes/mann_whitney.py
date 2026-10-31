@@ -210,16 +210,15 @@ def _sample_fomega(
     )
 
 
-def _mann_whitney_large(
+def _mann_whitney_large_posterior(
     e: np.ndarray,
     c: np.ndarray,
     ue: int,
     uc: int,
     a0: float,
     b0: float,
-    pi: float,
-    samples: int,
-) -> MannWhitneyLargeOut:
+) -> tuple[float, float, float]:
+    """Closed-form beta posterior parameters for the large-sample branch."""
     n_e = len(e)
     n_c = len(c)
     xs = ue / (ue + uc) if (ue + uc) != 0 else float("nan")
@@ -262,10 +261,32 @@ def _mann_whitney_large(
         b = ombar * absum
         omegabar = 1.0 - ombar
 
-    na = a - 1.0
-    nb = b - 1.0
-    a_post = a0 + na
-    b_post = b0 + nb
+    return a0 + a - 1.0, b0 + b - 1.0, omegabar
+
+
+def _mann_whitney_prh1(E, C, a0: float, b0: float) -> float:
+    """Only ``prH1``, skipping interval/HDI work the power loop never uses."""
+    e, c = _clean_vectors(E, C)
+    if len(e) == 0 or len(c) == 0:
+        raise ValueError("The E and C vectors must have a length greater than 0.")
+    ue, uc = _u_statistics(e, c)
+    a_post, b_post, _ = _mann_whitney_large_posterior(e, c, ue, uc, a0, b0)
+    return float(1.0 - pbeta(0.5, a_post, b_post))
+
+
+def _mann_whitney_large(
+    e: np.ndarray,
+    c: np.ndarray,
+    ue: int,
+    uc: int,
+    a0: float,
+    b0: float,
+    pi: float,
+    samples: int,
+) -> MannWhitneyLargeOut:
+    n_e = len(e)
+    n_c = len(c)
+    a_post, b_post, omegabar = _mann_whitney_large_posterior(e, c, ue, uc, a0, b0)
     a = a_post
     b = b_post
 

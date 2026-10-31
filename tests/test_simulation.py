@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 import dfbayes as d
+from dfbayes.simulation import _summarise
 
 EULER_GAMMA = 0.5772156649015329
 
@@ -149,6 +150,22 @@ def test_sim_data_validation_errors_are_r_messages():
         d.dfba_sim_data(n=20, model="bad", design="paired", delta=1)
     with pytest.raises(ValueError, match="stipulated design"):
         d.dfba_sim_data(n=20, model="normal", design="bad", delta=1)
+
+
+def test_summary_fast_path_matches_full_analysis():
+    # The power loops only need prH1; _summarise skips the interval/HDI work.
+    # Pin it to the public analysis so the optimisation cannot drift.
+    rng = np.random.default_rng(20261116)
+    for design in ("paired", "independent"):
+        for _ in range(25):
+            e = rng.normal(0.4, 1.0, 25)
+            c = rng.normal(0.0, 1.0, 25)
+            _, pr_h1 = _summarise(e, c, design, 1.0, 1.0)
+            if design == "paired":
+                full = d.dfba_wilcoxon(e, c, method="large")
+            else:
+                full = d.dfba_mann_whitney(e, c, method="large")
+            assert pr_h1 == full.prH1
 
 
 def test_power_curve_structure_and_reproducibility():

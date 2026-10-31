@@ -15,9 +15,9 @@ import numpy as np
 from scipy.stats import t as student_t
 
 from ._core import check_positive_finite, is_na, rdiv
-from .mann_whitney import dfba_mann_whitney
+from .mann_whitney import _mann_whitney_prh1
 from .results import OutputTable, PowerCurveOut, SimDataOut, TPowerOut
-from .wilcoxon import dfba_wilcoxon
+from .wilcoxon import _wilcoxon_prh1
 
 _MODELS = (
     "normal",
@@ -198,12 +198,12 @@ def _summarise(
         )
         t_sample = rdiv(numerator, denominator)
         pvalue = float(student_t.sf(t_sample, 2 * n - 2))
-        pr_h1 = dfba_mann_whitney(e, c, a0=a0, b0=b0, method="large").prH1
+        pr_h1 = _mann_whitney_prh1(e, c, a0, b0)
     else:
         d = e - c
         t_sample = rdiv(math.sqrt(n) * float(np.mean(d)), float(np.std(d, ddof=1)))
         pvalue = float(student_t.sf(t_sample, n - 1))
-        pr_h1 = dfba_wilcoxon(Y1=e, Y2=c, a0=a0, b0=b0, method="large").prH1
+        pr_h1 = _wilcoxon_prh1(e, c, a0, b0)
     return pvalue, float(pr_h1)
 
 

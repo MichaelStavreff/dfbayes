@@ -240,6 +240,18 @@ numeric result.
     change for inputs R "accepts", documented here rather than reproduced.
     Fractions that round to at least one follow R. `None` is the port's NA
     convention and raises the same `invalid 'times' argument` as `NA`.
+13. **Power-loop summary fast path.** `dfba_power_curve` and
+    `dfba_bayes_vs_t_power` only consume `pvalue` and `prH1` from each
+    simulated data set. R still calls the full analysis, which computes the
+    posterior median, equal-tailed interval and HDI for every replication. The
+    port factors the closed-form posterior parameters into helpers and exposes
+    `_wilcoxon_prh1` / `_mann_whitney_prh1`, which skip that unused interval
+    work. The public analysis functions keep their full output. A differential
+    test (`test_summary_fast_path_matches_full_analysis`) pins the fast path to
+    the public functions. Measured on the development machine at
+    `samples=1000`, `dfba_power_curve` fell from 86.6 s to 5.5 s (paired) and
+    76.2 s to 3.5 s (independent); `dfba_bayes_vs_t_power` fell from 41.9 s to
+    3.0 s and 32.6 s to 2.1 s. No fixture or tolerance was changed.
 
 ## Out of scope
 
