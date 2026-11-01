@@ -203,7 +203,9 @@ suite, installs the wheel and sdist in clean environments, and uploads.
    ```
 
 3. The workflow rejects a tag that does not match the package version, publishes
-   to PyPI, and attaches the artefacts to the GitHub release.
+   to PyPI, and attaches the artefacts to the GitHub release. Release notes come
+   from `.github/release-notes/<tag>.md` when that file exists; otherwise GitHub
+   generates them from the commit range.
 
 The workflow can also be dispatched manually; it targets TestPyPI by default.
 TestPyPI is a **separate registry with its own accounts and its own trusted

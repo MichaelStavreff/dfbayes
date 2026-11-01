@@ -137,6 +137,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Needed only to read .github/release-notes/<tag>.md, if one exists.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Download distributions
         uses: actions/download-artifact@v4
         with:
@@ -148,7 +153,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" dist/* \
-            --verify-tag \
-            --title "${GITHUB_REF_NAME}" \
-            --generate-notes
+          notes=".github/release-notes/${GITHUB_REF_NAME}.md"
+          if [ -f "${notes}" ]; then
+            echo "using curated notes from ${notes}"
+            gh release create "${GITHUB_REF_NAME}" dist/* \
+              --verify-tag \
+              --title "${GITHUB_REF_NAME}" \
+              --notes-file "${notes}"
+          else
+            echo "no ${notes}; falling back to generated notes"
+            gh release create "${GITHUB_REF_NAME}" dist/* \
+              --verify-tag \
+              --title "${GITHUB_REF_NAME}" \
+              --generate-notes
+          fi
