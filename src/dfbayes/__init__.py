@@ -46,7 +46,7 @@ from .simulation import (
 )
 from .wilcoxon import dfba_wilcoxon
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [  # noqa: RUF022 - grouped by kind for readability
     "__version__",

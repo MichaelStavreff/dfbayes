@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dfbayes"
-version = "0.1.0"
+version = "0.1.1"
 description = "Distribution-free Bayesian analysis: a faithful Python port of R's DFBA"
 readme = "README.md"
 license = "GPL-2.0-only"
