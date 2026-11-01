@@ -31,7 +31,7 @@ from .cases import (
 
 
 def _one_of_each() -> dict[str, object]:
-    """Build one result object for every Phase 1 result class."""
+    """Build one result object for every closed-form result class."""
     rng = np.random.default_rng(20240601)
     return {
         "dfba_binomial_out": d.dfba_binomial(16, 2),

@@ -1,4 +1,4 @@
-"""Phase 2 simulation and power tools.
+"""Simulation and power tools.
 
 These functions mirror DFBA's ``dfba_sim_data``, ``dfba_power_curve`` and
 ``dfba_bayes_vs_t_power``.  Data generation uses numpy's ``Generator`` rather

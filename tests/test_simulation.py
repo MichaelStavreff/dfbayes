@@ -1,4 +1,4 @@
-"""Tests for the Phase 2 simulation and power functions.
+"""Tests for the simulation and power functions.
 
 numpy sampling is not bit-compatible with R's Mersenne-Twister, so these tests
 check the documented contract: parameterisation of each model, reproducibility

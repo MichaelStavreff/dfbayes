@@ -1,4 +1,4 @@
-"""Golden-fixture tests for the deterministic Phase 1 functions."""
+"""Golden-fixture tests for the deterministic functions."""
 
 from __future__ import annotations
 

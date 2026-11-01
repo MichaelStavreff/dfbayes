@@ -3,7 +3,7 @@
 Fixture case names refer to `tests/fixtures/fixtures.json`; stochastic case
 names refer to `tests/fixtures/stochastic.json`. The deterministic suite runs
 every fixture in `tests/test_deterministic.py`; the stochastic suite is
-`tests/test_stochastic.py`; Phase 2 model/power behaviour is in
+`tests/test_stochastic.py`; simulation and power behaviour is in
 `tests/test_simulation.py`.
 
 `upstream/` is read-only. Expected values are produced by running R DFBA 0.1.0,

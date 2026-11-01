@@ -380,7 +380,7 @@ class OutputTable:
 
 
 # ---------------------------------------------------------------------------
-# Phase 1 result classes
+# closed-form result classes
 # ---------------------------------------------------------------------------
 
 @dataclass(repr=False)
@@ -793,7 +793,7 @@ class BivariateConcordanceStarOut(DFBAResult):
 
 
 # ---------------------------------------------------------------------------
-# Phase 2 simulation result classes
+# simulation result classes
 # ---------------------------------------------------------------------------
 
 @dataclass(repr=False)

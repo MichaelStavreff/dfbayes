@@ -18,6 +18,7 @@ tests/fixtures/*.json    golden outputs, committed
 tests/                   pytest suite
 DECISION.md              scope, name, NA/RNG policy, tolerances
 COVERAGE.md              R source branch -> test map
+CONTRIBUTING.md          dev setup, fixture policy, release process
 justfile                 build/test/fixtures/clean
 ```
 

@@ -121,7 +121,7 @@ The two Mann-Whitney cases sit on opposite sides of R's branch test
 Branch A counts only the first `Ntot` row-major comparisons; branch B counts
 all of them. Both are preserved and replay-tested against the frozen `fomega`.
 
-## Phase 2 simulation models
+## Simulation models
 
 `dfba_sim_data` draws with numpy's `Generator`; R's `set.seed()` state is not
 reproduced. Each model uses R's parameterisation:
@@ -215,8 +215,8 @@ numeric result.
    `results_to_dataframe()` are additions, not R API. `to_json()` maps
    non-finite values to `null` because JSON has no NaN or infinity.
    `to_dataframe()` omits array slots unless `include_arrays=True`.
-10. **Phase 2 progress and RNG.** `hide_progress` is accepted but no `\r...%`
-    progress output is emitted, matching the Phase 1 policy. The simulation
+10. **Simulation progress and RNG.** `hide_progress` is accepted but no
+    `\r...%` progress output is emitted, matching the closed-form policy. The simulation
     functions accept an optional numpy `Generator` (`rng=`) for reproducibility;
     R only offers `set.seed()`. Sampling is not bit-compatible with R.
 11. **`dfba_power_curve` result shape.** The R documentation mentions a
@@ -224,7 +224,7 @@ numeric result.
     list; the values live in `outputdf$delta_value`. The port follows the
     implementation. `PowerCurveOut.delta_vec` is a Python convenience property,
     not an R slot.
-12. **Phase 2 `samples` validation.** R computes `nsims <- round(samples)` and
+12. **Simulation `samples` validation.** R computes `nsims <- round(samples)` and
     then `rep(NA, nsims)` without validating. R 4.6.1 behaves as follows for
     both `dfba_power_curve` and `dfba_bayes_vs_t_power`:
 

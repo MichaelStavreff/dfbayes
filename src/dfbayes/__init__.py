@@ -1,8 +1,8 @@
 """Distribution-free Bayesian procedures, ported from R's DFBA 0.1.0.
 
-Phase 1 covers the eleven closed-form core functions.  Phase 2 adds the
-simulation helpers ``dfba_sim_data``, ``dfba_power_curve`` and
-``dfba_bayes_vs_t_power``.
+The closed-form core covers eleven analysis functions; the simulation helpers
+``dfba_sim_data``, ``dfba_power_curve`` and ``dfba_bayes_vs_t_power`` cover
+study planning.
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ __all__ = [  # noqa: RUF022 - grouped by kind for readability
     "dfba_median_test",
     "dfba_sign_test",
     "dfba_wilcoxon",
-    # Phase 2 simulation
+    # simulation and power
     "dfba_sim_data",
     "dfba_power_curve",
     "dfba_bayes_vs_t_power",
