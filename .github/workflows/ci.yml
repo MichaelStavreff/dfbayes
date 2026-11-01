@@ -1,8 +1,8 @@
 name: CI
 
 on:
+  # Every branch push runs the suite; main is also gated by pull requests.
   push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
