@@ -1,5 +1,7 @@
 # dfbayes
 
+[![CI](https://github.com/MichaelStavreff/dfbayes/actions/workflows/ci.yml/badge.svg)](https://github.com/MichaelStavreff/dfbayes/actions/workflows/ci.yml)
+
 A faithful Python port of the R package **DFBA** (Distribution-Free Bayesian
 Analysis) by Daniel H. Barch and Richard A. Chechile, version 0.1.0.
 

@@ -39,6 +39,8 @@ all = ["pandas>=1.5", "matplotlib>=3.6"]
 
 [project.urls]
 Upstream = "https://CRAN.R-project.org/package=DFBA"
+Source = "https://github.com/MichaelStavreff/dfbayes"
+Issues = "https://github.com/MichaelStavreff/dfbayes/issues"
 
 [dependency-groups]
 dev = [

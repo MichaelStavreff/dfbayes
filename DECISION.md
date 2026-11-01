@@ -278,6 +278,17 @@ numeric result.
     from 1.86 s to 0.83 s; the independent path is unchanged. A snapshot of 120
     large and 120 small Wilcoxon calls (with tied data), 18 power curves and 4
     `dfba_bayes_vs_t_power` calls is byte-identical before and after.
+17. **Power loops share the draw path without re-validating.** The power
+    functions validate their constant arguments once, then call the private
+    `_simulate` helper for every replication instead of `dfba_sim_data`. It
+    performs the same draw, block effect and summary but skips repeated
+    argument checks and result-object allocation. `dfba_sim_data` delegates to
+    the same helper, so there is still a single implementation. At
+    `samples=500`, the paired power curve fell from 0.83 s to 0.60 s and the
+    independent one from 0.84 s to 0.64 s. The 240-call Wilcoxon/power/Bayes-vs-t
+    snapshot in item 16 is byte-identical. Test:
+    `test_power_loop_uses_the_public_draw_path` pins the shared path and RNG
+    stream position.
 
 ## Out of scope
 

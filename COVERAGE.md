@@ -196,6 +196,7 @@ The star class has R's duplicated `prob_interval` slot; see `DECISION.md`.
 | `samples` rounded like R | `test_samples_are_rounded_like_r` |
 | pinned-seed reproducibility | `test_power_curve_structure_and_reproducibility` |
 | summary fast path equals full analysis | `test_summary_fast_path_matches_full_analysis` |
+| power loop shares the draw path with `dfba_sim_data` | `test_power_loop_uses_the_public_draw_path` |
 | output table and pandas export | `test_output_table_is_pandas_friendly`, `test_power_result_helpers_and_batch_dataframe` |
 | plotting | `test_power_curve_plot` |
 

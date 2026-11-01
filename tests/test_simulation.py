@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 import dfbayes as d
-from dfbayes.simulation import _summarise
+from dfbayes.simulation import _simulate, _summarise
 
 EULER_GAMMA = 0.5772156649015329
 
@@ -105,6 +105,27 @@ def test_zero_block_max_does_not_advance_the_generator():
     blocked_reference.normal(0.5, 1.0, 20)
     blocked_reference.uniform(0.0, 2.0, 20)
     assert blocked.uniform() == blocked_reference.uniform()
+
+
+def test_power_loop_uses_the_public_draw_path():
+    """_simulate must match dfba_sim_data, including stream position."""
+    kwargs = {"n": 20, "a0": 1.0, "b0": 1.0, "model": "normal", "design": "paired"}
+    public_rng = np.random.default_rng(99)
+    public = d.dfba_sim_data(delta=0.3, rng=public_rng, **kwargs)
+    loop_rng = np.random.default_rng(99)
+    e, c, pvalue, prh1 = _simulate(
+        delta=0.3,
+        shape1=1.0,
+        shape2=1.0,
+        block_max=0.0,
+        rng=loop_rng,
+        **kwargs,
+    )
+    np.testing.assert_array_equal(e, public.E)
+    np.testing.assert_array_equal(c, public.C)
+    assert pvalue == public.pvalue
+    assert prh1 == public.prH1
+    assert loop_rng.uniform() == public_rng.uniform()
 
 
 @pytest.mark.parametrize(

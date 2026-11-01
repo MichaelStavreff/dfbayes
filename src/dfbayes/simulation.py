@@ -209,6 +209,46 @@ def _summarise(
     return pvalue, float(pr_h1)
 
 
+def _simulate(
+    n: int,
+    a0: float,
+    b0: float,
+    model: str,
+    design: str,
+    delta: float,
+    shape1: float,
+    shape2: float,
+    block_max: float,
+    rng: Any,
+) -> tuple[np.ndarray, np.ndarray, float, float]:
+    """Draw and summarise one data set; all arguments must be validated.
+
+    Split out from :func:`dfba_sim_data` so the power loops do not repeat the
+    argument validation or build a result object for every replication.
+    """
+    generator = _generator(rng)
+    c, e = _draw(model, n, delta, shape1, shape2, generator)
+
+    # R's runif(n, 0, 0) returns zeros without consuming RNG state, so the
+    # port skips the draw when block_max is exactly zero.  The added values
+    # would be zeros, so the returned data are unchanged; only the position
+    # of a caller-supplied Generator moves in lockstep with R.
+    if design == "independent":
+        if block_max > 0.0:
+            b_ex = generator.uniform(0.0, block_max, n)
+            b_cn = generator.uniform(0.0, block_max, n)
+            e = e + b_ex
+            c = c + b_cn
+    else:
+        if block_max > 0.0:
+            block = generator.uniform(0.0, block_max, n)
+            e = e + block
+            c = c + block
+
+    pvalue, pr_h1 = _summarise(e, c, design, a0, b0)
+    return e, c, pvalue, pr_h1
+
+
 def dfba_sim_data(
     n: int = 20,
     a0: float = 1.0,
@@ -248,26 +288,18 @@ def dfba_sim_data(
     )
     s1, s2 = _check_shapes(model_value, shape1, shape2)
 
-    generator = _generator(rng)
-    c, e = _draw(model_value, n_value, delta_value, s1, s2, generator)
-
-    # R's runif(n, 0, 0) returns zeros without consuming RNG state, so the
-    # port skips the draw when block_max is exactly zero.  The added values
-    # would be zeros, so the returned data are unchanged; only the position
-    # of a caller-supplied Generator moves in lockstep with R.
-    if design_value == "independent":
-        if block_value > 0.0:
-            b_ex = generator.uniform(0.0, block_value, n_value)
-            b_cn = generator.uniform(0.0, block_value, n_value)
-            e = e + b_ex
-            c = c + b_cn
-    else:
-        if block_value > 0.0:
-            block = generator.uniform(0.0, block_value, n_value)
-            e = e + block
-            c = c + block
-
-    pvalue, pr_h1 = _summarise(e, c, design_value, a0v, b0v)
+    e, c, pvalue, pr_h1 = _simulate(
+        n_value,
+        a0v,
+        b0v,
+        model_value,
+        design_value,
+        delta_value,
+        s1,
+        s2,
+        block_value,
+        rng,
+    )
     return SimDataOut(
         pvalue=pvalue,
         prH1=pr_h1,
@@ -341,7 +373,7 @@ def dfba_power_curve(
         a0, b0, "Both a0 and b0 must be positive and finite."
     )
     block_value = _check_block_max(block_max)
-    _check_shapes(model_value, shape1, shape2)
+    s1, s2 = _check_shapes(model_value, shape1, shape2)
     nsims = _check_nsims(samples)
 
     generator = _generator(rng)
@@ -352,20 +384,20 @@ def dfba_power_curve(
         bayes = np.empty(nsims, dtype=float)
         tpvalue = np.empty(nsims, dtype=float)
         for j in range(nsims):
-            output = dfba_sim_data(
-                n=n_value,
-                a0=a0v,
-                b0=b0v,
-                model=model_value,
-                design=design_value,
-                delta=float(delta),
-                shape1=shape1,
-                shape2=shape2,
-                block_max=block_value,
-                rng=generator,
+            _, _, pvalue, pr_h1 = _simulate(
+                n_value,
+                a0v,
+                b0v,
+                model_value,
+                design_value,
+                float(delta),
+                s1,
+                s2,
+                block_value,
+                generator,
             )
-            bayes[j] = output.prH1
-            tpvalue[j] = output.pvalue
+            bayes[j] = pr_h1
+            tpvalue[j] = pvalue
         detect_bayes[i] = float(np.sum(bayes > effect_value)) / nsims
         detect_t[i] = float(np.sum(tpvalue < 1.0 - effect_value)) / nsims
 
@@ -426,7 +458,7 @@ def dfba_bayes_vs_t_power(
         effect_crit,
         "The effect_crit value must be a number nonzero number less than 1.",
     )
-    _check_shapes(model_value, shape1, shape2)
+    s1, s2 = _check_shapes(model_value, shape1, shape2)
     block_value = _check_block_max(block_max)
     nsims = _check_nsims(samples)
 
@@ -438,20 +470,20 @@ def dfba_bayes_vs_t_power(
         bayes = np.empty(nsims, dtype=float)
         tpvalue = np.empty(nsims, dtype=float)
         for j in range(nsims):
-            output = dfba_sim_data(
-                n=int(n_value),
-                a0=a0v,
-                b0=b0v,
-                model=model_value,
-                design=design_value,
-                delta=delta_value,
-                shape1=shape1,
-                shape2=shape2,
-                block_max=block_value,
-                rng=generator,
+            _, _, pvalue, pr_h1 = _simulate(
+                int(n_value),
+                a0v,
+                b0v,
+                model_value,
+                design_value,
+                delta_value,
+                s1,
+                s2,
+                block_value,
+                generator,
             )
-            bayes[j] = output.prH1
-            tpvalue[j] = output.pvalue
+            bayes[j] = pr_h1
+            tpvalue[j] = pvalue
         detect_bayes[i] = float(np.sum(bayes > effect_value)) / nsims
         detect_t[i] = float(np.sum(tpvalue < 1.0 - effect_value)) / nsims
 
