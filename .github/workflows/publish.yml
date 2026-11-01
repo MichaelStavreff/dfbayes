@@ -1,0 +1,154 @@
+name: Publish
+
+# Release workflow: builds the distributions once, verifies them, then hands
+# them to PyPI via Trusted Publishing (OIDC). There is no API token or password
+# anywhere in this file.
+#
+# Triggers
+#   * push of a `v*` tag   -> publishes to PyPI and opens a GitHub release
+#   * manual dispatch      -> publishes to TestPyPI (default) or PyPI
+#
+# PyPI trusted publisher to configure (https://pypi.org/manage/account/publishing/):
+#   project:      dfbayes
+#   owner/repo:   MichaelStavreff/dfbayes
+#   workflow:     publish.yml
+#   environment:  pypi
+# The manual/TestPyPI path additionally needs an environment named `testpypi`
+# and a matching publisher on https://test.pypi.org/manage/account/publishing/.
+
+on:
+  push:
+    tags: ["v[0-9]*"]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Index to publish to"
+        type: choice
+        options: ["testpypi", "pypi"]
+        default: "testpypi"
+
+# Default to read-only; the publish job opts into `id-token: write` alone.
+permissions:
+  contents: read
+
+# Never let two runs upload the same tag concurrently.
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: test, build and verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Install
+        run: uv sync --locked
+
+      # A tag can point at any commit, so do not assume CI ran on it.
+      - name: Check the tag matches the package version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version="$(uv run --no-sync python -c 'import pathlib, tomllib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          runtime="$(uv run --no-sync python -c 'import dfbayes; print(dfbayes.__version__)')"
+          echo "tag ${GITHUB_REF_NAME}, pyproject v${version}, dfbayes.__version__ ${runtime}"
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ] || [ "${runtime}" != "${version}" ]; then
+            echo "::error::version mismatch: tag ${GITHUB_REF_NAME}, pyproject v${version}, package ${runtime}"
+            exit 1
+          fi
+
+      - name: Run the test suite
+        run: uv run --no-sync pytest -q
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Check distribution metadata
+        run: uvx --from twine==7.0.0 twine check dist/*
+
+      # Release artefacts are installed exactly as a user would install them.
+      - name: Install the wheel in a clean environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/wheel-env"
+          "$RUNNER_TEMP/wheel-env/bin/pip" install --quiet dist/*.whl
+          "$RUNNER_TEMP/wheel-env/bin/python" -c "import dfbayes; r = dfbayes.dfba_binomial(n1=16, n2=2); assert 0.0 <= r.phimean <= 1.0; print(dfbayes.__version__, r.R_CLASS)"
+
+      - name: Install the sdist in a clean environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/sdist-env"
+          "$RUNNER_TEMP/sdist-env/bin/pip" install --quiet dist/*.tar.gz
+          "$RUNNER_TEMP/sdist-env/bin/python" -c "import dfbayes; print(dfbayes.__version__)"
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: publish to ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'pypi' }}
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'pypi' }}
+      url: ${{ (github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi') && 'https://test.pypi.org/p/dfbayes' || 'https://pypi.org/p/dfbayes' }}
+    permissions:
+      # The OIDC token is what PyPI exchanges for a short-lived upload token.
+      # `contents: read` is the minimum needed to download the artefact.
+      id-token: write
+      contents: read
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Show what will be published
+        run: |
+          ls -l dist
+          sha256sum dist/*
+
+      - name: Publish to TestPyPI
+        if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+        uses: pypa/gh-action-pypi-publish@v1.14.3
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          # TestPyPI is a scratch index; allow re-running a workflow dispatch
+          # for a version that is already there. PyPI itself must never skip.
+          skip-existing: true
+
+      - name: Publish to PyPI
+        if: github.event_name == 'push' || inputs.target == 'pypi'
+        uses: pypa/gh-action-pypi-publish@v1.14.3
+
+  release:
+    name: attach distributions to the GitHub release
+    needs: [build, publish]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --verify-tag \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes
