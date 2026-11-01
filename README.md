@@ -206,7 +206,15 @@ suite, installs the wheel and sdist in clean environments, and uploads.
    to PyPI, and attaches the artefacts to the GitHub release.
 
 The workflow can also be dispatched manually; it targets TestPyPI by default.
-That path needs a `testpypi` environment and a matching trusted publisher.
+TestPyPI is a **separate registry with its own accounts and its own trusted
+publishers**, so a publisher created on `pypi.org` does not apply there. The
+manual path needs a pending publisher on
+<https://test.pypi.org/manage/account/publishing/> with project `dfbayes`,
+workflow `publish.yml` and environment `testpypi`.
+
+A tag push is the release: it publishes to PyPI and creates the GitHub release.
+Do not create the GitHub release by hand first, or the `release` job will fail
+because the release already exists.
 
 
 ## Attribution and licence
